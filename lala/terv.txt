@@ -1,0 +1,35 @@
+- felulet : noemi
+- motor : erika
+
+1.letrehoz egy pachage (noemi) amelynek neve engine
+2.interface neve:DAL( DataAccesLayer) -adat hozzaferesi reteg
+	-meghat hogy milyen muveleteket kmell tudni elvegezni	(nem mysql,nem tudja h milyen adatbazis kezelo rendszeer)
+	-boolean isFD(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns)
+	-boolean isCFD(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition)
+	-boolean isAr(String table, String condition, AbstractList<String> dependentColumns)
+	-AbstractList<String> getConditions(String table, String column)
+	-kapcsolat letrehozas az adatbazissal -metodus neve:connect (URL, userName, password, port, dbName)
+	-insert
+	-update
+	-delete
+	
+3.egy osztaly neve:MySQL,  implemetalja a DAL-t
+4.letre kell hozni egy osztalyt az engine-ben amelyiknek a neve:Operator - tartalmazni fogja statikusan a DAL-t(adattag) es letre lehet majd hozni tobb szalat amit parameterekkel lehet beallitani
+ez az osztaly szarmazzon a Thread-bol vagy haszlanja azt es kepes legyen parancsokat vegrehajtani kivulrol vezerelve
+itt a parancsok: - (erika) learnDependencies -vegigmegy a tablan es lekeri a dolgokat -fd,cfd,ar stb.
+5.Felulet:lerte kell hozni egy pachage UI (user interface) 
+6.UI-ban letre hozunk egy osztalyt amelyik reflection segitsegevel bizonyos parameterek alapjan peldanyositani tud egy tetszoleges osztalyt ami a JFrame-bol szarmazik
+7.letrehozzunk egy forms packaget az UI-ban
+8.minden feluleti ablakot a formsban fogunk letrehozni
+9.legyen egy settings.ini allomany amelyben a bealliyasokat meg tudjuk hatarozni
+10.engine-ben legyen egy init package amelyik tartalmazni fog osztalyokat amelyeknek segitsegevel be tudjuk olvasni es a memoriaban tarolni a beallitasokat
+11.beallitasok: -rdbms
+		-userName
+		-password
+		-port
+		-dbName
+12.mindent ami nincs a src mappaban beteszuk hogy a git ne vegye figyelembe( .gitignore )
+13.letrehozunk egy exceptionhandler packaget 
+14.ebben a packageben letrehozzuk azokat az osztalyokat ahogy h egy hibauzenetet megjelenitsunk JOptionPane-el
+megj:amennyiben wamp-ot hasznalunk el kell inditani a szervert ahoz hogy hasznalhatjuk az adatbazist( bongeszobol ki lehet nyitni egy ablakot s egy tabot amiben az adatbazis elerheto phpmyadmin segitsegevel 
+)
