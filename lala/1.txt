@@ -1,5 +1,2 @@
-<<<<<<< HEAD
-ez egy valtoztatasvaltozik
-=======
 ez egy valtoztatas (kiserlet)
->>>>>>> 095de6439c61ba204be0e8e7bd5399cad77c1881
+
