@@ -10,4 +10,16 @@ package engine;
  */
 public class Operator extends Thread{
     private static DAL dataAccesLayer;
+
+    public static DAL getDataAccesLayer() {
+        return dataAccesLayer;
+    }
+
+    public static void setDataAccesLayer(DAL dataAccesLayer) {
+        Operator.dataAccesLayer = dataAccesLayer;
+    }
+    
+    public static void learnDependencies(){
+        
+    }
 }
