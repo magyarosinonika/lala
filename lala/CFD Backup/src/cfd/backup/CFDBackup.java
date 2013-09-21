@@ -23,7 +23,7 @@ public class CFDBackup {
         } catch (Exception ex) {
             System.out.println(ex);
         }
-        mySql.connect("jdbc:mysql://localhost:", "nonika", "seepbaba", 3306, "proba");
+        mySql.connect("jdbc:mysql://localhost:", "nonika", "seepbaba", 3306, "proba2");
         
     }
 }
