@@ -9,5 +9,6 @@ package UI;
  * @author noni
  */
 public class JFrameManager  {
-    
+    Class noparams[]={};
+    Class[] paramsString=new Class[1];
 }

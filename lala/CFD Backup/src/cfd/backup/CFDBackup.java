@@ -4,6 +4,7 @@
  */
 package cfd.backup;
 
+import UI.forms.ConnectToDatabase;
 import engine.MySql;
 
 /**
@@ -17,13 +18,14 @@ public class CFDBackup {
      */
     public static void main(String[] args) {
         // TODO code application logic here
-        MySql mySql = new MySql();
+        /*MySql mySql = new MySql();
         try {
             Class.forName("com.mysql.jdbc.Driver").newInstance();
         } catch (Exception ex) {
             System.out.println(ex);
         }
-        mySql.connect("jdbc:mysql://localhost:", "nonika", "seepbaba", 3306, "proba2");
+        mySql.connect("jdbc:mysql://localhost:", "nonika", "seepbaba", 3306, "proba2");*/
+        ConnectToDatabase connDb = new ConnectToDatabase();
         
     }
 }
