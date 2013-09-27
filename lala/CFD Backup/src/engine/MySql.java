@@ -51,7 +51,27 @@ public class MySql implements DAL {
         query += " ) ";
         //System.out.println(query);
         //A queryt le kell futtatni az adatbazisban es a vissza teritett eredmenyt vizsgaljuk meg attol fugg a return
-        return true;
+        Statement stmt_fd = null;
+        ResultSet fd = null;
+        try {
+
+            stmt_fd = conn.createStatement();
+            fd = null;
+            fd = stmt_fd.executeQuery("query");
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        try {
+            if ( fd.getString(1).equalsIgnoreCase("0") ){
+                return true;
+            }
+            else
+                return false;
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+           
     }
 
     @Override
