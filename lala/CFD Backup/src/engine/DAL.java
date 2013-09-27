@@ -20,4 +20,5 @@ public interface DAL {//javaDocs utana olvasni
     void insert();
     void update();
     void delete();
+    void generate();
 }
