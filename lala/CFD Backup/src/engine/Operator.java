@@ -9,13 +9,13 @@ package engine;
  * @author noni
  */
 public class Operator extends Thread{
-    private static Dal dataAccesLayer;
+    private static DAL dataAccesLayer;
 
-    public static Dal getDataAccesLayer() {
+    public static DAL getDataAccesLayer() {
         return dataAccesLayer;
     }
 
-    public static void setDataAccesLayer(Dal dataAccesLayer) {
+    public static void setDataAccesLayer(DAL dataAccesLayer) {
         Operator.dataAccesLayer = dataAccesLayer;
     }
     

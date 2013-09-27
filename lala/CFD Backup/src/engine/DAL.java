@@ -10,7 +10,7 @@ import java.util.AbstractList;
  *
  * @author noni
  */
-public interface Dal {
+public interface DAL {//javaDocs utana olvasni
     
     boolean isFd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns);
     boolean isCfd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition);

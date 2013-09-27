@@ -21,7 +21,7 @@ import java.util.Set;
  *
  * @author noni
  */
-public class MySql implements Dal {
+public class MySql implements DAL {
     
     ArrayList<String> primary_keys_array = new ArrayList<String>();
     //ArrayList<String> columns_array = new ArrayList<String>();
@@ -29,6 +29,29 @@ public class MySql implements Dal {
 
     @Override
     public boolean isFd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns) {
+        String query = "select count(*) " + 
+                      "from " + table + " t1, " + table + " t2" +
+                      " where (";
+        for( int i = 0;i<determinantColumns.size();i++ ){
+            if ( i > 0 ){
+                query += " and ";
+            }
+            query += "(t1." + determinantColumns.get(i) + " = t2." + determinantColumns.get(i) + " )";
+                   
+        }
+        
+        query += " ) and ( "; 
+
+        for( int i = 0;i<dependentColumns.size();i++ ){
+            if ( i > 0 ){
+                query += " or ";
+            }
+            query += "(t1." + dependentColumns.get(i) + " <> t2." + dependentColumns.get(i) + " )";
+                   
+        }
+        query += " ) ";
+        //System.out.println(query);
+        //A queryt le kell futtatni az adatbazisban es a vissza teritett eredmenyt vizsgaljuk meg attol fugg a return
         return true;
     }
 
@@ -49,6 +72,7 @@ public class MySql implements Dal {
         return testlist;
     }
 
+    // a kombinaciok kigeneralasat kulon metodusba kell rakni
     @Override
     public boolean connect(String url, String userName, String password, int port, String dbName) {
         Connection conn = null;
@@ -76,6 +100,7 @@ public class MySql implements Dal {
                 ResultSet primary_keys = null;
                 stmt_primary_keys = conn.createStatement();
                 primary_keys = null;
+                //nem kell a show keys mert a show columns mar vissza teriti a kulcs oszlopokat:columns.getString
                 primary_keys = stmt_primary_keys.executeQuery("SHOW KEYS FROM " + tables.getString(1) + " WHERE Key_name = 'PRIMARY';");
 
                 while (primary_keys.next()) {
@@ -192,6 +217,7 @@ public class MySql implements Dal {
         }
     }
 
+    //attanulmanyozni es atnevezni
     public boolean getNext(final int[] num, final int n, final int r) {
         int target = r - 1;
         num[target]++;
