@@ -13,7 +13,8 @@ import java.util.Hashtable;
  *
  * @author noni
  */
-public class Operator extends Thread{
+public class Operator extends Thread {
+
     private static DAL dataAccesLayer;
 
     public static DAL getDataAccesLayer() {
@@ -23,10 +24,8 @@ public class Operator extends Thread{
     public static void setDataAccesLayer(DAL dataAccesLayer) {
         Operator.dataAccesLayer = dataAccesLayer;
     }
-    
-    public static void learnDependencies(){
-        
-        
-        
+
+    public static void learnDependencies() {
+       // System.out.println(isFd(getTable_name(), getDeterminant_columns_array(), getDependent_columns_array()));
     }
 }

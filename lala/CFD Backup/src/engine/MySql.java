@@ -23,6 +23,22 @@ public class MySql implements DAL {
 
     private Connection conn = null;
     private ArrayList<String> columns_array = new ArrayList<String>();
+    private String table_name;
+    private ArrayList<String> determinant_columns_array = new ArrayList<String>();
+    private ArrayList<String> dependent_columns_array = new ArrayList<String>();
+
+     public String getTable_name() {
+        return table_name;
+    }
+     
+    public ArrayList<String> getDeterminant_columns_array() {
+        return determinant_columns_array;
+    }
+    
+    public ArrayList<String> getDependent_columns_array() {
+        return dependent_columns_array;
+    }
+    
     //kiserlet erika
     @Override
     public boolean isFd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns) {
@@ -36,7 +52,6 @@ public class MySql implements DAL {
             query += "(t1." + determinantColumns.get(i) + " = t2." + determinantColumns.get(i) + " )";
 
         }
-
         query += " ) and ( ";
 
         for (int i = 0; i < dependentColumns.size(); i++) {
@@ -47,25 +62,28 @@ public class MySql implements DAL {
 
         }
         query += " ) ";
-        //System.out.println(query);
-        //A queryt le kell futtatni az adatbazisban es a vissza teritett eredmenyt vizsgaljuk meg attol fugg a return
         Statement stmt_fd = null;
         ResultSet fd = null;
         try {
-
+           
             stmt_fd = conn.createStatement();
             fd = null;
-            fd = stmt_fd.executeQuery("query");
+            fd = stmt_fd.executeQuery(query);
         } catch (SQLException ex) {
             Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
         }
+        
         try {
-            if (fd.getString(1).equalsIgnoreCase("0")) {
-                return true;
-            } else {
-                return false;
+            while (fd.next()) {
+                if (fd.getString(1).equalsIgnoreCase("0")) {
+                    return true;
+                } else {
+                    return false;
+                }
             }
+
         } catch (SQLException ex) {
+
             Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
         }
         return false;
@@ -89,7 +107,6 @@ public class MySql implements DAL {
         return testlist;
     }
 
-    // a kombinaciok kigeneralasat kulon metodusba kell rakni
     @Override
     public boolean connect(String url, String userName, String password, int port, String dbName) {
 
@@ -122,28 +139,7 @@ public class MySql implements DAL {
         System.out.println("delete");
     }
     
-    public void combinations(final AbstractList columns, int[] helpNumbers, final int k) {
-        int[] result = new int[k];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = i + 1;
-        }
-        boolean done = false;
-        while (!done) {
-            System.out.println("Meghatarozo:" + Arrays.toString(result));
-            for (int j = 0; j < result.length; ++j) {
-                System.out.print(columns.get(result[j]-1) + " ");
-            }
-            System.out.println();
-            
-            for (int i = 1; i <= columns_array.size() - 1; ++i) {
-                combinations(columns_array, i, result);
-            }
-            done = getNext(result, columns.size(), k);
-
-
-        }
-    }
-
+    
     @Override
     public void generate() {
         try {
@@ -154,6 +150,7 @@ public class MySql implements DAL {
             tables = stmt_tables.executeQuery("show tables;");
             while (tables.next()) {
                 System.out.println("Table name: " + tables.getString(1));
+                table_name = tables.getString(1);
                 Statement stmt_columns = null;
                 ResultSet columns = null;
                 stmt_columns = conn.createStatement();
@@ -188,6 +185,31 @@ public class MySql implements DAL {
         }
     }
 
+    public void combinations(final AbstractList columns, int[] helpNumbers, final int k) {
+        int[] result = new int[k];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = i + 1;
+        }
+        boolean done = false;
+        while (!done) {
+            determinant_columns_array.clear();
+            System.out.println("Meghatarozo:" + Arrays.toString(result));
+            for (int j = 0; j < result.length; ++j) {
+                System.out.print(columns.get(result[j]-1) + " ");
+                determinant_columns_array.add(columns.get(result[j]-1).toString());
+            }
+            System.out.println();
+            
+            for (int i = 1; i <= columns_array.size() - 1; ++i) {
+                combinations(columns_array, i, result);
+            }
+            done = getNext(result, columns.size(), k);
+        }
+        
+
+    }
+
+    
     public void combinations(final AbstractList columns, final int k, final int[] melyikne) {
         int[] result = new int[k];
         for (int i = 0; i < result.length; i++) {
@@ -208,15 +230,27 @@ public class MySql implements DAL {
                 System.out.println("Meghatarozott:" + Arrays.toString(result));
                 for (int j = 0; j < result.length; ++j) {
                     System.out.print(columns.get(result[j]-1) + " ");
+                    dependent_columns_array.add(columns.get(result[j]-1).toString());
+                }
+                //System.out.println("Table name: " + table_name);
+                //System.out.println("Determinant: " + determinant_columns_array);
+                //System.out.println("Dependent: " + dependent_columns_array);
+                if (isFd(table_name, determinant_columns_array, dependent_columns_array)){
+                    System.out.println("Is FD");
+                }
+                else{
+                    System.out.println("is not Fd");
                 }
                 System.out.println();
+                dependent_columns_array.clear();
             }
             done = getNext(result, columns.size(), k);
             ok = true;
+            
         }
     }
 
-    //attanulmanyozni es atnevezni
+
     public boolean getNext(final int[] helpNumbers, final int n, final int k) {
         int target = k - 1;
         helpNumbers[target]++;

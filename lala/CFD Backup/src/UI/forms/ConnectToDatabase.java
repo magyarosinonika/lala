@@ -60,7 +60,6 @@ public class ConnectToDatabase {
                 mySql.connect("jdbc:mysql://localhost:", txtUserName.getText(), txtPassword.getText(), Integer.parseInt(txtPort.getText()), txtDbName.getText());//ini allomanybol a  beallitasiokat beolvassa a felulet
                 connect_frame.setVisible(false);
                 mySql.generate();
-
             }
         });
         connect_frame.add(btConnect, BorderLayout.SOUTH);
