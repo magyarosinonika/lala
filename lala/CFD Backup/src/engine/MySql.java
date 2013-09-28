@@ -139,7 +139,30 @@ public class MySql implements DAL {
         System.out.println("delete");
     }
     
+<<<<<<< HEAD
     
+=======
+    public void combinations(final AbstractList columns, int[] helpNumbers, final int k) {
+        int[] result = new int[k];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = i + 1;
+        }
+        boolean done = false;
+        while (!done) {
+            System.out.println("Meghatarozo:" + Arrays.toString(result));
+            for (int j = 0; j < result.length; ++j) {
+                System.out.print(columns.get(result[j]-1) + " ");
+            }
+            System.out.println();
+            
+            for (int i = 1; i <= columns_array.size() - 1; ++i) {
+                combinations(columns_array, i, result);
+            }
+            done = getNext(result, columns.size(), k);
+        }
+    }
+
+>>>>>>> c6e70b17cf324e55130364d8ba0c78237334bce1
     @Override
     public void generate() {
         try {
