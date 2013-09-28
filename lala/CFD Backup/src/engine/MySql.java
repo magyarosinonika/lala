@@ -23,7 +23,7 @@ public class MySql implements DAL {
 
     private Connection conn = null;
     private ArrayList<String> columns_array = new ArrayList<String>();
-
+    //kiserlet erika
     @Override
     public boolean isFd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns) {
         String query = "select count(*) "
