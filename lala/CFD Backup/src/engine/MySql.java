@@ -138,10 +138,7 @@ public class MySql implements DAL {
     public void delete() {
         System.out.println("delete");
     }
-    
-<<<<<<< HEAD
-    
-=======
+
     public void combinations(final AbstractList columns, int[] helpNumbers, final int k) {
         int[] result = new int[k];
         for (int i = 0; i < result.length; i++) {
@@ -149,9 +146,11 @@ public class MySql implements DAL {
         }
         boolean done = false;
         while (!done) {
+            determinant_columns_array.clear();
             System.out.println("Meghatarozo:" + Arrays.toString(result));
             for (int j = 0; j < result.length; ++j) {
                 System.out.print(columns.get(result[j]-1) + " ");
+                determinant_columns_array.add(columns.get(result[j]-1).toString());
             }
             System.out.println();
             
@@ -161,8 +160,9 @@ public class MySql implements DAL {
             done = getNext(result, columns.size(), k);
         }
     }
+    
+    
 
->>>>>>> c6e70b17cf324e55130364d8ba0c78237334bce1
     @Override
     public void generate() {
         try {
@@ -208,32 +208,8 @@ public class MySql implements DAL {
         }
     }
 
-    public void combinations(final AbstractList columns, int[] helpNumbers, final int k) {
-        int[] result = new int[k];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = i + 1;
-        }
-        boolean done = false;
-        while (!done) {
-            determinant_columns_array.clear();
-            System.out.println("Meghatarozo:" + Arrays.toString(result));
-            for (int j = 0; j < result.length; ++j) {
-                System.out.print(columns.get(result[j]-1) + " ");
-                determinant_columns_array.add(columns.get(result[j]-1).toString());
-            }
-            System.out.println();
-            
-            for (int i = 1; i <= columns_array.size() - 1; ++i) {
-                combinations(columns_array, i, result);
-            }
-            done = getNext(result, columns.size(), k);
-        }
-        
-
-    }
-
     
-    public void combinations(final AbstractList columns, final int k, final int[] melyikne) {
+    public void combinations(final AbstractList columns, final int k, final int[] determinantColumns) {
         int[] result = new int[k];
         for (int i = 0; i < result.length; i++) {
             result[i] = i + 1;
@@ -242,22 +218,23 @@ public class MySql implements DAL {
         boolean ok = true;
         while (!done) {
             for (int i = 0; i < result.length; ++i) {
-                for (int j = 0; j < melyikne.length; ++j) {
-                    if (result[i] == melyikne[j]) {
+                for (int j = 0; j < determinantColumns.length; ++j) {
+                    if (result[i] == determinantColumns[j]) {
                         ok = false;
                         break;
                     }
                 }
             }
             if (ok) {
+                dependent_columns_array.clear();
                 System.out.println("Meghatarozott:" + Arrays.toString(result));
                 for (int j = 0; j < result.length; ++j) {
                     System.out.print(columns.get(result[j]-1) + " ");
                     dependent_columns_array.add(columns.get(result[j]-1).toString());
                 }
-                //System.out.println("Table name: " + table_name);
-                //System.out.println("Determinant: " + determinant_columns_array);
-                //System.out.println("Dependent: " + dependent_columns_array);
+                System.out.println("Table name: " + table_name);
+                System.out.println("Determinant: " + determinant_columns_array);
+                System.out.println("Dependent: " + dependent_columns_array);
                 if (isFd(table_name, determinant_columns_array, dependent_columns_array)){
                     System.out.println("Is FD");
                 }
@@ -265,7 +242,7 @@ public class MySql implements DAL {
                     System.out.println("is not Fd");
                 }
                 System.out.println();
-                dependent_columns_array.clear();
+                
             }
             done = getNext(result, columns.size(), k);
             ok = true;

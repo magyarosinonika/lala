@@ -78,10 +78,8 @@ public class ConnectToDatabase {
                 
                 connect_frame.setVisible(false);
                 mySql.generate();
-<<<<<<< HEAD
-=======
+
                 }
->>>>>>> c6e70b17cf324e55130364d8ba0c78237334bce1
             }
         });
         connect_frame.add(buttonsPanel, BorderLayout.SOUTH);
