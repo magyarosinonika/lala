@@ -4,7 +4,6 @@
  */
 package engine;
 
-import com.sun.org.apache.xalan.internal.xsltc.runtime.Hashtable;
 import java.util.AbstractList;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -23,8 +22,7 @@ import java.util.logging.Logger;
 public class MySql implements DAL {
 
     private Connection conn = null;
-    private ArrayList<String> primary_keys_array = new ArrayList<String>();
-    private Hashtable columns_array = new Hashtable();
+    private ArrayList<String> columns_array = new ArrayList<String>();
 
     @Override
     public boolean isFd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns) {
@@ -62,16 +60,16 @@ public class MySql implements DAL {
             Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
-            if ( fd.getString(1).equalsIgnoreCase("0") ){
+            if (fd.getString(1).equalsIgnoreCase("0")) {
                 return true;
-            }
-            else
+            } else {
                 return false;
+            }
         } catch (SQLException ex) {
             Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
         }
         return false;
-           
+
     }
 
     @Override
@@ -123,23 +121,24 @@ public class MySql implements DAL {
     public void delete() {
         System.out.println("delete");
     }
-
-    public void combinations(final Hashtable columns, final int r) {
-        int[] res = new int[r];
-        for (int i = 0; i < res.length; i++) {
-            res[i] = i + 1;
+    
+    public void combinations(final AbstractList columns, int[] helpNumbers, final int k) {
+        int[] result = new int[k];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = i + 1;
         }
         boolean done = false;
         while (!done) {
-            System.out.println("Meghatarozo:" + Arrays.toString(res));
-            for (int j = 0; j < res.length; ++j) {
-                System.out.print(columns.get(res[j]) + " ");
+            System.out.println("Meghatarozo:" + Arrays.toString(result));
+            for (int j = 0; j < result.length; ++j) {
+                System.out.print(columns.get(result[j]-1) + " ");
             }
             System.out.println();
+            
             for (int i = 1; i <= columns_array.size() - 1; ++i) {
-                combinations(columns_array, i, res);
+                combinations(columns_array, i, result);
             }
-            done = getNext(res, columns.size(), r);
+            done = getNext(result, columns.size(), k);
 
 
         }
@@ -162,18 +161,23 @@ public class MySql implements DAL {
                 columns = stmt_columns.executeQuery("show columns from " + tables.getString(1) + ";");
                 int key = 1;
                 while (columns.next()) {
-                    if (columns.getString(1)!=columns.getString(4)) {
-                        columns_array.put(key, columns.getString(1));
+                    if (!(columns.getString(4)).equalsIgnoreCase("PRI")) {
+                        columns_array.add(columns.getString(1));
                         ++key;
                     }
                 }
                 System.out.print("Columns: ");
-                for (int i = 1; i <= columns_array.size(); ++i) {
+                for (int i = 0; i < columns_array.size(); ++i) {
                     System.out.print(columns_array.get(i) + " ");
                 }
                 System.out.println();
+                int[] helpNumbers = new int[columns_array.size()];
+                for (int i = 0; i < columns_array.size(); ++i) {
+                    helpNumbers[i] = i + 1;
+                }
+
                 for (int i = 1; i <= (columns_array.size() - 1); ++i) {
-                    combinations(columns_array, i);
+                    combinations(columns_array,helpNumbers, i);
                 }
                 columns_array.clear();
 
@@ -184,40 +188,40 @@ public class MySql implements DAL {
         }
     }
 
-    public void combinations(final Hashtable columns, final int r, final int[] melyikne) {
-        int[] res = new int[r];
-        for (int i = 0; i < res.length; i++) {
-            res[i] = i + 1;
+    public void combinations(final AbstractList columns, final int k, final int[] melyikne) {
+        int[] result = new int[k];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = i + 1;
         }
         boolean done = false;
         boolean ok = true;
         while (!done) {
-            for (int k = 0; k < res.length; ++k) {
+            for (int i = 0; i < result.length; ++i) {
                 for (int j = 0; j < melyikne.length; ++j) {
-                    if (res[k] == melyikne[j]) {
+                    if (result[i] == melyikne[j]) {
                         ok = false;
                         break;
                     }
                 }
             }
             if (ok) {
-                System.out.println("Meghatarozott:" + Arrays.toString(res));
-                for (int j = 0; j < res.length; ++j) {
-                    System.out.print(columns.get(res[j]) + " ");
+                System.out.println("Meghatarozott:" + Arrays.toString(result));
+                for (int j = 0; j < result.length; ++j) {
+                    System.out.print(columns.get(result[j]-1) + " ");
                 }
                 System.out.println();
             }
-            done = getNext(res, columns.size(), r);
+            done = getNext(result, columns.size(), k);
             ok = true;
         }
     }
 
     //attanulmanyozni es atnevezni
-    public boolean getNext(final int[] num, final int n, final int r) {
-        int target = r - 1;
-        num[target]++;
-        if (num[target] > ((n - (r - target)) + 1)) {
-            while (num[target] > ((n - (r - target)))) {
+    public boolean getNext(final int[] helpNumbers, final int n, final int k) {
+        int target = k - 1;
+        helpNumbers[target]++;
+        if (helpNumbers[target] > ((n - (k - target)) + 1)) {
+            while (helpNumbers[target] > ((n - (k - target)))) {
                 target--;
                 if (target < 0) {
                     break;
@@ -226,9 +230,9 @@ public class MySql implements DAL {
             if (target < 0) {
                 return true;
             }
-            num[target]++;
-            for (int i = target + 1; i < num.length; i++) {
-                num[i] = num[i - 1] + 1;
+            helpNumbers[target]++;
+            for (int i = target + 1; i < helpNumbers.length; i++) {
+                helpNumbers[i] = helpNumbers[i - 1] + 1;
             }
         }
         return false;
