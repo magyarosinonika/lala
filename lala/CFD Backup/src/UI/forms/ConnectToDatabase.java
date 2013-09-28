@@ -32,6 +32,7 @@ public class ConnectToDatabase {
     private JTextField txtDbName ;
 
     public ConnectToDatabase() {
+        //kiserlet noni
         connect_frame = new JFrame();
         initComponents();
         connect_frame.setSize(400, 250);
