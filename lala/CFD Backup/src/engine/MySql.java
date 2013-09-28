@@ -139,8 +139,6 @@ public class MySql implements DAL {
                 combinations(columns_array, i, result);
             }
             done = getNext(result, columns.size(), k);
-
-
         }
     }
 
