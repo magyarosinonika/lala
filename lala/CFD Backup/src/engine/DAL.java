@@ -21,5 +21,6 @@ public interface DAL {//javaDocs utana olvasni
     void update();
     void delete();
     void generate();
+    boolean checkConnection();
     //void combinations(final AbstractList columns, int[] helpNumbers, final int k);
 }

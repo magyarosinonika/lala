@@ -24,9 +24,9 @@ import javax.swing.JTextField;
  *
  * @author noni
  */
-public class ConnectToDatabase {
-
-    private JFrame connect_frame;
+public class ConnectToDatabase extends JFrame{
+//extends jframe
+    //private JFrame connect_frame;
     private JTextField txtUserName ;
     private JPasswordField txtPassword ;
     private JPasswordField txtPassword2 ;
@@ -37,17 +37,24 @@ public class ConnectToDatabase {
 
     public ConnectToDatabase() {
         //kiserlet noni
-        connect_frame = new JFrame();
+        //nincs aktiv kapcs es nincsenek beallitasok es valamilyen adatbazisos muveletet akarok vegrehajtani
+        //settings learndependencisis,handledependencies,beallitasokba be lehessen allitani hogy milyen tablakat ne vegyen igenybe
+        //egy ablak amelyik backupot fog kesziteni - 2 modszer
+        //amikor elfogadunk 
+        //ha modosult valami az adatbazisban akkor ki neke toroolni az osszs olyan esetet ahol szerepelt
+        //legyen egy help
+        //this = new JFrame();
         initComponents();
-        connect_frame.setSize(400, 250);
-        connect_frame.setVisible(true);
-        connect_frame.setResizable(false);
-        connect_frame.setLocationRelativeTo(null);
+        this.setSize(400, 250);
+        this.setVisible(true);
+        this.setResizable(false);
+        this.setLocationRelativeTo(null);
+        this.setTitle("Nonika ablak");
     }
 
     public void initComponents() {
-        connect_frame.setLayout(new BorderLayout());
-        connect_frame.add(createInformationPanel(), BorderLayout.CENTER);
+        this.setLayout(new BorderLayout());
+        this.add(createInformationPanel(), BorderLayout.CENTER);
         JPanel buttonsPanel = new JPanel();
         buttonsPanel.setLayout(new GridLayout(1, 2));
         JButton btTestConnect = new JButton();
@@ -56,35 +63,55 @@ public class ConnectToDatabase {
         buttonsPanel.add(btSave);
         btTestConnect.setText("Test connection");
         btSave.setText("Save");
+        final JFrame myFrame = this;
         btTestConnect.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
                 
                 if (txtUserName.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(connect_frame, "Please enter your User name!", "Warning",0 );
-                }else{
+                    JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning",0 );
+                }else if(!(txtPassword.getText().equalsIgnoreCase(txtPassword2.getText()))){
+                    JOptionPane.showMessageDialog(null, "The password and confirmation password do not match!", "Warning",0 );
+                }else if(txtHost.getText().equalsIgnoreCase("")){
+                    JOptionPane.showMessageDialog(null, "Please enter the host!", "Warning",0 );
+                }else if(txtPort.getText().equalsIgnoreCase("")){
+                    JOptionPane.showMessageDialog(null, "Please enter the port!", "Warning",0 );
+                }else if(txtDbName.getText().equalsIgnoreCase("")){
+                    JOptionPane.showMessageDialog(null, "Please enter the Database name!", "Warning",0 );
+                }
+                else{
                     DAL mySql = new MySql();
                 try {
                     Class.forName("com.mysql.jdbc.Driver").newInstance();
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(null, ex, "ERROR", 0);
+                    JOptionPane.showMessageDialog(null, "Upppps", "ERROR", 0);
                 }
-                System.out.println("itt");
+                //System.out.println("itt");
                 if ((String.valueOf(cbRDBMS.getSelectedItem())).equalsIgnoreCase("MySQL")) {
-                    System.out.println("mysql");
-                    mySql.connect("jdbc:mysql://"+ txtHost.getText() +":", txtUserName.getText(), txtPassword.getText(), Integer.parseInt(txtPort.getText()), txtDbName.getText());
+                    //System.out.println("mysql");
+                    try {
+                        mySql.connect("jdbc:mysql://"+ txtHost.getText() +":", txtUserName.getText(), txtPassword.getText(), Integer.parseInt(txtPort.getText()), txtDbName.getText());
+                        myFrame.setVisible(false);
+                        mySql.generate();
+                    } catch (Exception ex) {
+                        if(ex.getMessage().contains("For input string")){
+                            JOptionPane.showMessageDialog(null,"Please enter number to the Port Field!", "Warning",0 );
+                        }else{
+                            JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning",0 );
+                        }
+                    }
+                    
                 }
                 
-                connect_frame.setVisible(false);
-                mySql.generate();
+                
 
                 }
             }
         });
-        connect_frame.add(buttonsPanel, BorderLayout.SOUTH);
-        connect_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        connect_frame.setResizable(false);
+        this.add(buttonsPanel, BorderLayout.SOUTH);
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setResizable(false);
 
     }
 
