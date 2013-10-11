@@ -4,10 +4,8 @@
  */
 package engine;
 
-import UI.forms.ConnectToDatabase;
+import engine.init.ColumnHelper;
 import engine.init.Settings;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.AbstractList;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -15,7 +13,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -27,28 +24,12 @@ import javax.swing.JOptionPane;
 public class MySql implements DAL {
 
     private Connection connection = null;
-    private ArrayList<String> columns_array = new ArrayList<String>();
-    private String table_name;
-    private ArrayList<String> determinant_columns_array = new ArrayList<String>();
-    private ArrayList<String> dependent_columns_array = new ArrayList<String>();
+    private ArrayList<String> columnsArray = new ArrayList<String>();
 
     public Connection getConnection() {
         return connection;
     }
 
-    public String getTable_name() {
-        return table_name;
-    }
-
-    public ArrayList<String> getDeterminant_columns_array() {
-        return determinant_columns_array;
-    }
-
-    public ArrayList<String> getDependent_columns_array() {
-        return dependent_columns_array;
-    }
-
-    //kiserlet erika
     @Override
     public boolean isFd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns) {
         String query = "select count(*) "
@@ -99,8 +80,35 @@ public class MySql implements DAL {
 
     }
 
+    /** 
+     * Checks whether the parameters describe a CFD 
+     * @param table The name of the table 
+     * @param determinantColumns The set of determinant columns 
+     * @param dependentColumns The set of dependent columns 
+     * @param condition The condition of the potential CFD 
+     * @return true if the parameters describe a CFD and false otherwise 
+     */
     @Override
     public boolean isCfd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition) {
+        String query = "select count(*) "
+                + "from " + table + " t1, " + table + " t2"
+                + " where (" + condition + ") and ( ";
+
+        for (int i = 0; i < determinantColumns.size(); i++) {
+            if (i > 0) {
+                query += " and ";
+            }
+            query += "(t1." + determinantColumns.get(i) + " = t2." + determinantColumns.get(i) + " )";
+        }
+        query += " ) and ( ";
+        for (int i = 0; i < dependentColumns.size(); i++) {
+            if (i > 0) {
+                query += " or ";
+            }
+            query += "(t1." + dependentColumns.get(i) + " <> t2." + dependentColumns.get(i) + " )";
+        }
+        query += " ) ";
+        System.out.println(query);
         return true;
     }
 
@@ -111,9 +119,27 @@ public class MySql implements DAL {
 
     @Override
     public AbstractList<String> getConditions(String table, String column) {
-        AbstractList<String> testlist = null;
-        testlist.add("Is a test!");
-        return testlist;
+        AbstractList<String> conditionList = new ArrayList<String>();
+        String query = "select " + column
+                + " from " + table
+                + " group by " + column
+                + " having count(*) >= "
+                + Settings.getOccurrenceNumber();
+        Statement stmt_conditions = null;
+        ResultSet conditions = null;
+        try {
+            stmt_conditions = connection.createStatement();//statement kiirva es nem alulvonas
+            conditions = null;
+            conditions = stmt_conditions.executeQuery(query);
+            while (conditions.next()) {
+                conditionList.add(column + "='" + conditions.getString(1) + "'");
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);//joption pane hasznalni 
+        }
+        //System.out.println("////////"+query); 
+        //System.out.println("////"+condition_list.toString()); 
+        return conditionList;// a conditionList ben vannak az osszetett stringek
     }
 
     public boolean checkConnection() {
@@ -129,7 +155,6 @@ public class MySql implements DAL {
             return false;
         }
     }
-
 
     @Override
     public boolean connect(String url, String userName, String password, int port, String dbName) {
@@ -173,29 +198,6 @@ public class MySql implements DAL {
         System.out.println("delete");
     }
 
-    public void combinations(final AbstractList columns, int[] helpNumbers, final int k) {
-        int[] result = new int[k];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = i + 1;
-        }
-        boolean done = false;
-        while (!done) {
-            determinant_columns_array.clear();
-            System.out.println("Meghatarozo:" + Arrays.toString(result));
-            for (int j = 0; j < result.length; j++) {
-                System.out.print(columns.get(result[j] - 1) + " ");
-                determinant_columns_array.add(columns.get(result[j] - 1).toString());
-            }
-            System.out.println();
-
-            for (int i = 1; i < columns_array.size(); i++) {
-                combinations(columns_array, i, result);
-            }
-            done = true;
-            result = getNext(result, columns.size(), k);
-        }
-    }
-
     @Override
     public void generate() {
         try {
@@ -206,33 +208,36 @@ public class MySql implements DAL {
             tables = stmt_tables.executeQuery("show tables;");
             while (tables.next()) {
                 System.out.println("Table name: " + tables.getString(1));
-                table_name = tables.getString(1);
+                //table_name = tables.getString(1);
+                ColumnHelper columnHelper = new ColumnHelper(tables.getString(1));
                 Statement stmt_columns = null;
                 ResultSet columns = null;
                 stmt_columns = connection.createStatement();
                 columns = null;
-                columns = stmt_columns.executeQuery("show columns from " + tables.getString(1) + ";");
+                //columns = stmt_columns.executeQuery("show columns from " + tables.getString(1) + ";");
+                columns = stmt_columns.executeQuery("show columns from " + columnHelper.getTableName() + ";");
                 int key = 1;
                 while (columns.next()) {
                     if (!(columns.getString(4)).equalsIgnoreCase("PRI")) {
-                        columns_array.add(columns.getString(1));
+                        columnsArray.add(columns.getString(1));
                         ++key;
                     }
                 }
+                columnHelper.setColumnsArray(columnsArray);
                 System.out.print("Columns: ");
-                for (int i = 0; i < columns_array.size(); ++i) {
-                    System.out.print(columns_array.get(i) + " ");
+                for (int i = 0; i < columnHelper.getColumnsArray().size(); ++i) {
+                    System.out.print(columnHelper.getColumnsArray().get(i) + " ");
                 }
                 System.out.println();
-                int[] helpNumbers = new int[columns_array.size()];
-                for (int i = 0; i < columns_array.size(); ++i) {
+                int[] helpNumbers = new int[columnHelper.getColumnsArray().size()];
+                for (int i = 0; i < columnHelper.getColumnsArray().size(); ++i) {
                     helpNumbers[i] = i + 1;
                 }
 
-                for (int i = 1; i <= (columns_array.size() - 1); ++i) {
-                    combinations(columns_array, helpNumbers, i);
+                for (int i = 1; i <= (columnHelper.getColumnsArray().size() - 1); ++i) {
+                    columnHelper.combinations(columnHelper.getColumnsArray(), helpNumbers, i);
                 }
-                columns_array.clear();
+                columnsArray.clear();
 
             }
             connection.close();
@@ -240,79 +245,5 @@ public class MySql implements DAL {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
 
         }
-    }
-
-    public void combinations(final AbstractList columns, final int k, final int[] determinantColumns) {
-        int[] result = new int[k];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = i + 1;
-        }
-        boolean done = false;
-        boolean ok = true;
-        while (!done) {
-            for (int i = 0; i < result.length; ++i) {
-                for (int j = 0; j < determinantColumns.length; ++j) {
-                    if (result[i] == determinantColumns[j]) {
-                        ok = false;
-                        break;
-                    }
-                }
-            }
-            if (ok) {
-                dependent_columns_array.clear();
-                System.out.println("Meghatarozott:" + Arrays.toString(result));
-                for (int j = 0; j < result.length; ++j) {
-                    System.out.print(columns.get(result[j] - 1) + " ");
-                    dependent_columns_array.add(columns.get(result[j] - 1).toString());
-                }
-                System.out.println("Table name: " + table_name);
-                System.out.println("Determinant: " + determinant_columns_array);
-                System.out.println("Dependent: " + dependent_columns_array);
-                if (isFd(table_name, determinant_columns_array, dependent_columns_array)) {
-                    System.out.println("Is FD");
-                } else {
-                    System.out.println("is not Fd");
-                }
-                System.out.println();
-
-            }
-            done = true;
-            result = getNext(result, columns.size(), k);
-            ok = true;
-
-        }
-    }
-
-    /**
-     * Finds the next combination of helpNumbers
-     * @param helpNumbers the set to combine
-     * @param n the total number of elements
-     * @param k the total number of the elements in the subset
-     * @return the next combination
-     */
-    public int[] getNext(int[] helpNumbers, int n, int k) {
-        boolean stop = false;
-        while( !stop) {
-            int lastIndex = k - 1;
-            helpNumbers[lastIndex]++;
-            if (helpNumbers[lastIndex] > ((n - (k - lastIndex)) + 1)) {
-                while (helpNumbers[lastIndex] > ((n - (k - lastIndex)))) {
-                    lastIndex--;
-                    if (lastIndex < 0) {
-                        break;
-                    }
-                }
-                if (lastIndex < 0) {
-                    stop = true;
-                } else {
-                    helpNumbers[lastIndex]++;
-                    for (int i = lastIndex + 1; i < helpNumbers.length; i++) {
-                        helpNumbers[i] = helpNumbers[i - 1] + 1;
-                    }
-                }
-
-            }
-        }
-        return helpNumbers;
     }
 }

@@ -22,7 +22,15 @@ public final class Settings {
     private static String password = null;
     private static int port = 0;
     private static String dbName = null;
+    private static int occurrenceNumber = 4; 
     
+    public static int getOccurrenceNumber() { 
+        return occurrenceNumber; 
+    } 
+    
+    public static void setOccurrenceNumber(int occurrenceNumber) { 
+        Settings.occurrenceNumber = occurrenceNumber; 
+    }
 
     public static void initializeSettings() throws FileNotFoundException, IOException {
         BufferedReader br = new BufferedReader(new FileReader("settings.ini"));
