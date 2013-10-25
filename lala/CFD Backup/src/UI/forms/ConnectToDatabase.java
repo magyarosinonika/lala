@@ -4,12 +4,15 @@
  */
 package UI.forms;
 
-import engine.DAL;
-import engine.MySql;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -24,16 +27,18 @@ import javax.swing.JTextField;
  *
  * @author noni
  */
-public class ConnectToDatabase extends JFrame{
+public class ConnectToDatabase extends JFrame {
 //extends jframe
     //private JFrame connect_frame;
-    private JTextField txtUserName ;
-    private JPasswordField txtPassword ;
-    private JPasswordField txtPassword2 ;
-    private JTextField txtHost ;
-    private JTextField txtPort ;
-    private JTextField txtDbName ;
+
+    private JTextField txtUserName;
+    private JPasswordField txtPassword;
+    private JPasswordField txtPassword2;
+    private JTextField txtHost;
+    private JTextField txtPort;
+    private JTextField txtDbName;
     private JComboBox cbRDBMS;
+
 
     public ConnectToDatabase() {
         //kiserlet noni
@@ -45,11 +50,13 @@ public class ConnectToDatabase extends JFrame{
         //legyen egy help
         //this = new JFrame();
         initComponents();
-        this.setSize(400, 250);
-        this.setVisible(true);
-        this.setResizable(false);
-        this.setLocationRelativeTo(null);
-        this.setTitle("Nonika ablak");
+        
+        //this.setTitle("Nonika ablak");
+    }
+    
+    public ConnectToDatabase(String name){
+        super(name);
+        initComponents();
     }
 
     public void initComponents() {
@@ -68,44 +75,79 @@ public class ConnectToDatabase extends JFrame{
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                
+
                 if (txtUserName.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning",0 );
-                }else if(!(txtPassword.getText().equalsIgnoreCase(txtPassword2.getText()))){
-                    JOptionPane.showMessageDialog(null, "The password and confirmation password do not match!", "Warning",0 );
-                }else if(txtHost.getText().equalsIgnoreCase("")){
-                    JOptionPane.showMessageDialog(null, "Please enter the host!", "Warning",0 );
-                }else if(txtPort.getText().equalsIgnoreCase("")){
-                    JOptionPane.showMessageDialog(null, "Please enter the port!", "Warning",0 );
-                }else if(txtDbName.getText().equalsIgnoreCase("")){
-                    JOptionPane.showMessageDialog(null, "Please enter the Database name!", "Warning",0 );
-                }
-                else{
-                    DAL mySql = new MySql();
-                try {
-                    Class.forName("com.mysql.jdbc.Driver").newInstance();
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(null, "Upppps", "ERROR", 0);
-                }
-                //System.out.println("itt");
-                if ((String.valueOf(cbRDBMS.getSelectedItem())).equalsIgnoreCase("MySQL")) {
-                    //System.out.println("mysql");
-                    try {
-                        mySql.connect("jdbc:mysql://"+ txtHost.getText() +":", txtUserName.getText(), txtPassword.getText(), Integer.parseInt(txtPort.getText()), txtDbName.getText());
-                        myFrame.setVisible(false);
-                        mySql.generate();
-                    } catch (Exception ex) {
-                        if(ex.getMessage().contains("For input string")){
-                            JOptionPane.showMessageDialog(null,"Please enter number to the Port Field!", "Warning",0 );
-                        }else{
-                            JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning",0 );
+                    JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning", 0);
+                } else if (!(txtPassword.getText().equalsIgnoreCase(txtPassword2.getText()))) {
+                    JOptionPane.showMessageDialog(null, "The password and confirmation password do not match!", "Warning", 0);
+                } else if (txtHost.getText().equalsIgnoreCase("")) {
+                    JOptionPane.showMessageDialog(null, "Please enter the host!", "Warning", 0);
+                } else if (txtPort.getText().equalsIgnoreCase("")) {
+                    JOptionPane.showMessageDialog(null, "Please enter the port!", "Warning", 0);
+                } else if (txtDbName.getText().equalsIgnoreCase("")) {
+                    JOptionPane.showMessageDialog(null, "Please enter the Database name!", "Warning", 0);
+                } else {
+                    if ((String.valueOf(cbRDBMS.getSelectedItem())).equalsIgnoreCase("MySQL")) {
+                        try {
+                            String drivers = "com.mysql.jdbc.Driver";
+                            System.setProperty(drivers, "");
+                            Connection connection = null;
+                            try {
+                                connection = DriverManager.getConnection("jdbc:mysql://" + txtHost.getText() + ":" + Integer.parseInt(txtPort.getText()) + "/" + txtDbName.getText(), txtUserName.getText(), txtPassword.getText());
+                                JOptionPane.showMessageDialog(null, "Is a valid connection!", "Warning", 0);
+                                connection.close();
+                            } catch (SQLException ex) {
+                                if (ex.getMessage().contains("Communications link failure")) {
+                                    JOptionPane.showMessageDialog(null, "Connection failed!", "Warning", 0);
+                                } else {
+                                    JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+                                }
+                            }
+                        } catch (Exception ex) {
+                            if (ex.getMessage().contains("For input string")) {
+                                JOptionPane.showMessageDialog(null, "Please enter number to the Port Field!", "Warning", 0);
+                            } else {
+                                JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+                            }
                         }
                     }
-                    
                 }
-                
-                
+            }
+        });
 
+        btSave.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                if (txtUserName.getText().equalsIgnoreCase("")) {
+                    JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning", 0);
+                } else if (!(txtPassword.getText().equalsIgnoreCase(txtPassword2.getText()))) {
+                    JOptionPane.showMessageDialog(null, "The password and confirmation password do not match!", "Warning", 0);
+                } else if (txtHost.getText().equalsIgnoreCase("")) {
+                    JOptionPane.showMessageDialog(null, "Please enter the host!", "Warning", 0);
+                } else if (txtPort.getText().equalsIgnoreCase("")) {
+                    JOptionPane.showMessageDialog(null, "Please enter the port!", "Warning", 0);
+                } else if (txtDbName.getText().equalsIgnoreCase("")) {
+                    JOptionPane.showMessageDialog(null, "Please enter the Database name!", "Warning", 0);
+                } else {
+                    if ((String.valueOf(cbRDBMS.getSelectedItem())).equalsIgnoreCase("MySQL")) {
+                        
+                        try {
+                            String filename = "settings.ini";
+                            FileWriter fw = new FileWriter(filename);
+                            fw.write("User name:"+txtUserName.getText()+System.getProperty("line.separator")
+                                    +"Password:"+txtPassword.getText()+System.getProperty("line.separator")
+                                    +"Host:"+txtHost.getText()+System.getProperty("line.separator")
+                                    +"Port:"+txtPort.getText()+System.getProperty("line.separator")
+                                    +"Database name:"+txtDbName.getText()+System.getProperty("line.separator")
+                                    +"Rdbms:mysql");//appends the string to the file
+                            fw.close();
+                            JOptionPane.showMessageDialog(null, "Save!", "Warning", 0);
+                        } catch (IOException ioe) {
+                            System.err.println("IOException: " + ioe.getMessage());
+                        }
+                    }
                 }
             }
         });
@@ -125,56 +167,56 @@ public class ConnectToDatabase extends JFrame{
 
         JLabel lbUserName = new JLabel();
         lbUserName.setText("User name: ");
-        
+
         JLabel lbPassword = new JLabel();
         lbPassword.setText("Password: ");
-        
+
         JLabel lbConfirmPassword = new JLabel();
         lbConfirmPassword.setText("Confirm Password: ");
-        
+
         JLabel lbHost = new JLabel();
         lbHost.setText("Host: ");
-        
+
         JLabel lbPort = new JLabel();
         lbPort.setText("Port: ");
-        
+
         JLabel lbDbName = new JLabel();
         lbDbName.setText("Database name: ");
-        
+
         JLabel lbRDBMS = new JLabel();
         lbRDBMS.setText("RDBMS: ");
-        
+
         txtUserName = new JTextField();
         txtPassword = new JPasswordField();
         txtPassword2 = new JPasswordField();
         txtHost = new JTextField();
         txtPort = new JTextField();
         txtDbName = new JTextField();
-        String[] cbRDBMSStrings = { "MySQL", "PostgreSQL", "SQLite" };
+        String[] cbRDBMSStrings = {"MySQL", "PostgreSQL", "SQLite"};
         cbRDBMS = new JComboBox(cbRDBMSStrings);
         cbRDBMS.setSelectedIndex(0);
-        
+
         labelsPanel.add(lbUserName);
         textsPanel.add(txtUserName);
-        
+
         labelsPanel.add(lbPassword);
         textsPanel.add(txtPassword);
-        
+
         labelsPanel.add(lbConfirmPassword);
         textsPanel.add(txtPassword2);
-        
+
         labelsPanel.add(lbHost);
         textsPanel.add(txtHost);
-        
+
         labelsPanel.add(lbPort);
         textsPanel.add(txtPort);
-        
+
         labelsPanel.add(lbDbName);
         textsPanel.add(txtDbName);
-        
+
         labelsPanel.add(lbRDBMS);
         textsPanel.add(cbRDBMS);
-        
+
         infPanel.add(labelsPanel, BorderLayout.WEST);
         infPanel.add(textsPanel, BorderLayout.CENTER);
         infPanel.setBorder(BorderFactory.createTitledBorder("Please fill the fields to connect!"));

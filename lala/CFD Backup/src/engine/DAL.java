@@ -4,6 +4,7 @@
  */
 package engine;
 
+import java.sql.Connection;
 import java.util.AbstractList;
 
 /**
@@ -22,5 +23,8 @@ public interface DAL {//javaDocs utana olvasni
     void delete();
     void generate();
     boolean checkConnection();
+    Connection getConnection();
+    public AbstractList<String>getTableNames();
+    public AbstractList<FDScenario>getFDs(String tableName);
     //void combinations(final AbstractList columns, int[] helpNumbers, final int k);
 }

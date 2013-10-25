@@ -23,13 +23,22 @@ import javax.swing.JOptionPane;
  */
 public class MySql implements DAL {
 
-    private Connection connection = null;
+    private static Connection connection;
     private ArrayList<String> columnsArray = new ArrayList<String>();
+    private ColumnHelper columnHelper;
 
+    @Override
     public Connection getConnection() {
         return connection;
     }
 
+    /**
+     * 
+     * @param table The name of the table
+     * @param determinantColumns The set of determinant columns
+     * @param dependentColumns The set of dependent columns
+     * @return 
+     */
     @Override
     public boolean isFd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns) {
         String query = "select count(*) "
@@ -114,6 +123,18 @@ public class MySql implements DAL {
 
     @Override
     public boolean isAr(String table, String condition, AbstractList<String> dependentColumns) {
+        String query = "select count(*) "
+                + "from " + table + " t1, " + table + " t2"
+                + " where (" + condition + ") and ( ";
+
+        for (int i = 0; i < dependentColumns.size(); i++) {
+            if (i > 0) {
+                query += " or ";
+            }
+            query += "(t1." + dependentColumns.get(i) + " <> t2." + dependentColumns.get(i) + " )";
+        }
+        query += " ) ";
+        System.out.println(query);
         return true;
     }
 
@@ -142,6 +163,7 @@ public class MySql implements DAL {
         return conditionList;// a conditionList ben vannak az osszetett stringek
     }
 
+    @Override
     public boolean checkConnection() {
         Statement stmt = null;
         ResultSet rs = null;
@@ -200,6 +222,7 @@ public class MySql implements DAL {
 
     @Override
     public void generate() {
+        //System.out.println(connection);
         try {
             Statement stmt_tables = null;
             ResultSet tables = null;
@@ -208,8 +231,9 @@ public class MySql implements DAL {
             tables = stmt_tables.executeQuery("show tables;");
             while (tables.next()) {
                 System.out.println("Table name: " + tables.getString(1));
+                //column helpert felvittem az adattagokhoz hogy erjem  el a getFD-be
                 //table_name = tables.getString(1);
-                ColumnHelper columnHelper = new ColumnHelper(tables.getString(1));
+                columnHelper = new ColumnHelper(tables.getString(1));
                 Statement stmt_columns = null;
                 ResultSet columns = null;
                 stmt_columns = connection.createStatement();
@@ -246,4 +270,52 @@ public class MySql implements DAL {
 
         }
     }
+
+    public AbstractList<String> getTableNames() {
+        AbstractList<String> tableNameArray = new ArrayList<String>();
+        try {
+            Statement statementTables = null;
+            ResultSet tables = null;
+            statementTables = connection.createStatement();
+            tables = null;
+            tables = statementTables.executeQuery("show tables;");
+            while (tables.next()) {
+                System.out.println("Table name: " + tables.getString(1));
+                tableNameArray.add(tables.getString(1));
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+        }
+        return tableNameArray;
+    }
+    
+    public AbstractList<FDScenario> getFDs(String tableName){ 
+        AbstractList<FDScenario> listOfFDs = new ArrayList<FDScenario>(); 
+        AbstractList<FDScenario> combinations = columnHelper.getAllCombinations() ; 
+        for (int i=0;i<combinations.size();++i){ 
+            if(isFd(tableName,combinations.get(i).determinantColumns,combinations.get(i).dependentColumns )){
+                listOfFDs.add(combinations.get(i));
+            }
+        }
+        return listOfFDs; 
+    }
+    
+    /*public AbstractList<String> getCFDs(String tableName){ 
+         * AbstractList<String> listOfFDs =new ArrayList<String>(); 
+         * AbstractList<String> conditions = new ArrayList<String>();
+         * FDScenario combinations[]=columnHelper.getAllCombinations() ; 
+         * return listOfFDs; 
+     * }*/ 
+    /* AbstractList<CFD> getCFDs(tableName)
+         * foreach columnName in getColumnsOfTable(tableName) do 
+         * conditions <- getConditions(tableName, columnName)
+             * foreach condition in conditions do
+                 * while currentCombination <- nextCombination(someParameters) do
+                 * if (isCFD(currentCombination, condition)) then 
+                     * returnCFDs.add(new CFD(currentCombination)) 
+                 * end if 
+                 * end while
+             * end for 
+         * end for 
+     * end getCFDs*/
 }

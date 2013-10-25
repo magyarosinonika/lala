@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  *
@@ -22,44 +23,62 @@ public final class Settings {
     private static String password = null;
     private static int port = 0;
     private static String dbName = null;
-    private static int occurrenceNumber = 4; 
-    
-    public static int getOccurrenceNumber() { 
-        return occurrenceNumber; 
-    } 
-    
-    public static void setOccurrenceNumber(int occurrenceNumber) { 
-        Settings.occurrenceNumber = occurrenceNumber; 
+    private static int occurrenceNumber = 4;
+    private static String keyRdbms = "Rdbms";
+    private static String keyHost = "Host";
+    private static String keyUserName = "User name";
+    private static String keyPassword = "Password";
+    private static String keyPort = "Port";
+    private static String keyDbName = "Database name";
+    private static String keyOccurrenceNumber = "Occurrence number";
+
+    public static int getOccurrenceNumber() {
+        return occurrenceNumber;
+    }
+
+    public static void setOccurrenceNumber(int occurrenceNumber) {
+        Settings.occurrenceNumber = occurrenceNumber;
     }
 
     public static void initializeSettings() throws FileNotFoundException, IOException {
         BufferedReader br = new BufferedReader(new FileReader("settings.ini"));
+        String key="";
+        String value="";
         try {
             String line = br.readLine();
-            int i=1;
+            String[] values = line.split(":");
+            char a_char = line.charAt(line.length()-1);
+            if(a_char==':'){
+                return;
+            }
+            key = values[0];
+            value = values[1];
+            int i = 1;
             while (line != null) {
-                //System.out.println(line + "size:" + line.length());
-                if(i==1){
-                    setUserName(line);
+                values = line.split(":");
+                key = values[0]; // 004
+                value = values[1]; // 034556
+                if (i == 1 && key.equalsIgnoreCase(keyUserName)) {
+                    setUserName(value);
                 }
-                if (i==2) {
-                    setPassword(line);
+                if (i == 2 && key.equalsIgnoreCase(keyPassword)) {
+                    setPassword(value);
                 }
-                if (i==3) {
-                    setHost(line);
+                if (i == 3 && key.equalsIgnoreCase(keyHost)) {
+                    setHost(value);
                 }
-                if (i==4) {
-                    setPort(Integer.parseInt(line));
+                if (i == 4 && key.equalsIgnoreCase(keyPort)) {
+                    setPort(Integer.parseInt(value));
                 }
-                if (i==5) {
-                    setDbName(line);
+                if (i == 5 && key.equalsIgnoreCase(keyDbName)) {
+                    setDbName(value);
                 }
-                if (i==6) {
-                    setRdbms(line);
+                if (i == 6 && key.equalsIgnoreCase(keyRdbms)) {
+                    setRdbms(value);
                 }
                 line = br.readLine();
                 ++i;
-                
+
             }
         } finally {
             br.close();
@@ -73,7 +92,6 @@ public final class Settings {
     public static String getHost() {
         return host;
     }
-    
 
     public static String getPassword() {
         return password;
@@ -114,5 +132,4 @@ public final class Settings {
     public static void setHost(String host) {
         Settings.host = host;
     }
-    
 }

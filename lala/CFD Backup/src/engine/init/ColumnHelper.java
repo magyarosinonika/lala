@@ -4,6 +4,7 @@
  */
 package engine.init;
 
+import engine.FDScenario;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +21,12 @@ public class ColumnHelper {
     private AbstractList<String> dependentColumnsArray = new ArrayList<String>(); 
     private String conditionColumnName; 
     private boolean stop;
+    //atadni parameterkent ne legyen attributum
+    private AbstractList<FDScenario> allCombinations = new ArrayList<FDScenario>();
+    
+    public AbstractList<FDScenario> getAllCombinations(){
+        return allCombinations;
+    }
         
     public ColumnHelper( String tableName, String conditionColumnName) {
         //cfd ar eseten 
@@ -58,7 +65,12 @@ public class ColumnHelper {
     public void setColumnsArray(AbstractList<String> columnsArray) {
         this.columnsArray = columnsArray;
     }
-    
+    /**
+     * Find the dependent columns combinations
+     * @param columns columns of the current table
+     * @param k the total number of the elements in the subset
+     * @param determinantColumns determinant columns
+     */
      public void combinations(final AbstractList columns, final int k, final int[] determinantColumns) {
         int[] result = new int[k];
         for (int i = 0; i < result.length; i++) {
@@ -77,10 +89,19 @@ public class ColumnHelper {
             }
             if (ok) {
                 dependentColumnsArray.clear();
-                System.out.println("Meghatarozott:" + Arrays.toString(result));
+                //System.out.println("Meghatarozott:" + Arrays.toString(result));
                 for (int j = 0; j < result.length; ++j) {
-                    System.out.print(columns.get(result[j] - 1) + " ");
+                    //System.out.print(columns.get(result[j] - 1) + " ");
                     dependentColumnsArray.add(columns.get(result[j] - 1).toString());
+                }
+                //FDScenario fd = new FDScenario(determinantColumnsArray, dependentColumnsArray);
+                allCombinations.add(new FDScenario(determinantColumnsArray, dependentColumnsArray));
+                System.out.println("kombinacio :");
+                for(int i=0;i<determinantColumnsArray.size();++i){
+                    System.out.println("meghatarozo:"+determinantColumnsArray.get(i));
+                }
+                for(int i=0;i<dependentColumnsArray.size();++i){
+                    System.out.println("meghatarozott:"+dependentColumnsArray.get(i));
                 }
 //                if (isFd(table_name, determinant_columns_array, dependent_columns_array)) {
 //                    System.out.println("Is FD");
@@ -128,7 +149,12 @@ public class ColumnHelper {
         stop = false;
         return helpNumbers;
     }
-    
+    /**
+     * Finds the determinant columns combination
+     * @param columns columns of the current table
+     * @param helpNumbers the set to combine
+     * @param k the total number of the elements in the subset
+     */
     public void combinations(final AbstractList columns, int[] helpNumbers, final int k) {
         int[] result = new int[k];
         for (int i = 0; i < result.length; i++) {
@@ -137,7 +163,7 @@ public class ColumnHelper {
         boolean done = false;
         while (!done) {
             determinantColumnsArray.clear();
-            System.out.println("Meghatarozo:" + Arrays.toString(result));
+            //System.out.println("Meghatarozo:" + Arrays.toString(result));
             for (int j = 0; j < result.length; j++) {
                 System.out.print(columns.get(result[j] - 1) + " ");
                 determinantColumnsArray.add(columns.get(result[j] - 1).toString());
@@ -152,5 +178,7 @@ public class ColumnHelper {
             done = stop;
         }
     }
+    
+    
     
 }
