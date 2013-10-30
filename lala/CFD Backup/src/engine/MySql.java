@@ -99,9 +99,12 @@ public class MySql implements DAL {
      */
     @Override
     public boolean isCfd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition) {
+        condition=condition.trim();
+        String firstCondition = " t1." + condition + " ";
+        String secondCondition = " t2." + condition + " ";
         String query = "select count(*) "
                 + "from " + table + " t1, " + table + " t2"
-                + " where (" + condition + ") and ( ";
+                + " where (" + firstCondition +") and  ("+ secondCondition +") and( ";
 
         for (int i = 0; i < determinantColumns.size(); i++) {
             if (i > 0) {
@@ -118,14 +121,41 @@ public class MySql implements DAL {
         }
         query += " ) ";
         System.out.println(query);
-        return true;
+        Statement statemetCFd = null;
+        ResultSet cfd = null;
+        try {
+
+            statemetCFd = connection.createStatement();
+            cfd = null;
+            cfd = statemetCFd.executeQuery(query);
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        try {
+            while (cfd.next()) {
+                if (cfd.getString(1).equalsIgnoreCase("0")) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+        } catch (SQLException ex) {
+
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
     }
 
     @Override
     public boolean isAr(String table, String condition, AbstractList<String> dependentColumns) {
+        condition=condition.trim();
+        String firstCondition = " t1." + condition + " ";
+        String secondCondition = " t2." + condition + " ";
         String query = "select count(*) "
                 + "from " + table + " t1, " + table + " t2"
-                + " where (" + condition + ") and ( ";
+                + " where (" + firstCondition +" and  "+ secondCondition +") and( ";
 
         for (int i = 0; i < dependentColumns.size(); i++) {
             if (i > 0) {
@@ -135,7 +165,31 @@ public class MySql implements DAL {
         }
         query += " ) ";
         System.out.println(query);
-        return true;
+        Statement statemetAR = null;
+        ResultSet ar = null;
+        try {
+
+            statemetAR = connection.createStatement();
+            ar = null;
+            ar = statemetAR.executeQuery(query);
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        try {
+            while (ar.next()) {
+                if (ar.getString(1).equalsIgnoreCase("0")) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+        } catch (SQLException ex) {
+
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
     }
 
     @Override
@@ -222,52 +276,30 @@ public class MySql implements DAL {
 
     @Override
     public void generate() {
-        //System.out.println(connection);
-        try {
-            Statement stmt_tables = null;
-            ResultSet tables = null;
-            stmt_tables = connection.createStatement();
-            tables = null;
-            tables = stmt_tables.executeQuery("show tables;");
-            while (tables.next()) {
-                System.out.println("Table name: " + tables.getString(1));
-                //column helpert felvittem az adattagokhoz hogy erjem  el a getFD-be
-                //table_name = tables.getString(1);
-                columnHelper = new ColumnHelper(tables.getString(1));
-                Statement stmt_columns = null;
-                ResultSet columns = null;
-                stmt_columns = connection.createStatement();
-                columns = null;
-                //columns = stmt_columns.executeQuery("show columns from " + tables.getString(1) + ";");
-                columns = stmt_columns.executeQuery("show columns from " + columnHelper.getTableName() + ";");
-                int key = 1;
-                while (columns.next()) {
-                    if (!(columns.getString(4)).equalsIgnoreCase("PRI")) {
-                        columnsArray.add(columns.getString(1));
-                        ++key;
-                    }
-                }
-                columnHelper.setColumnsArray(columnsArray);
-                System.out.print("Columns: ");
-                for (int i = 0; i < columnHelper.getColumnsArray().size(); ++i) {
-                    System.out.print(columnHelper.getColumnsArray().get(i) + " ");
-                }
-                System.out.println();
-                int[] helpNumbers = new int[columnHelper.getColumnsArray().size()];
-                for (int i = 0; i < columnHelper.getColumnsArray().size(); ++i) {
-                    helpNumbers[i] = i + 1;
-                }
-
-                for (int i = 1; i <= (columnHelper.getColumnsArray().size() - 1); ++i) {
-                    columnHelper.combinations(columnHelper.getColumnsArray(), helpNumbers, i);
-                }
-                columnsArray.clear();
-
+        AbstractList<String> tablesArray = new ArrayList<String>();
+        AbstractList<String> columnArray = new ArrayList<String>();
+        tablesArray = getTableNames();
+        for (int i = 0; i < tablesArray.size(); ++i) {
+            System.out.println("Table name:");
+            System.out.println(tablesArray.get(i));
+            columnHelper = new ColumnHelper(tablesArray.get(i));
+            columnArray = getColumnsOfTable(tablesArray.get(i));
+            columnHelper.setColumnsArray(columnArray);
+            System.out.print("Columns: ");
+            for (int k = 0; k < columnHelper.getColumnsArray().size(); ++k) {
+                System.out.print(columnHelper.getColumnsArray().get(k) + " ");
             }
-            connection.close();
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+            System.out.println();
+            int[] helpNumbers = new int[columnHelper.getColumnsArray().size()];
+            for (int j = 0; j < columnHelper.getColumnsArray().size(); ++j) {
+                helpNumbers[j] = j + 1;
+            }
 
+            for (int l = 1; l <= (columnHelper.getColumnsArray().size() - 1); ++l) {
+                //columnHelper.combinations(columnHelper.getColumnsArray(), helpNumbers, l);
+                columnHelper.combinations(columnHelper.getColumnsArray(), helpNumbers, l, tablesArray.get(i));
+            }
+            columnArray.clear();
         }
     }
 
@@ -289,6 +321,25 @@ public class MySql implements DAL {
         return tableNameArray;
     }
     
+    public AbstractList<String> getColumnsOfTable(String tableName) {
+        AbstractList<String> columnsNameArray = new ArrayList<String>();
+        try {
+            Statement statementColumns = null;
+            ResultSet columns = null;
+            statementColumns = connection.createStatement();
+            columns = null;
+            columns = statementColumns.executeQuery("show columns from " + tableName + ";");
+            while (columns.next()) {
+                if (!(columns.getString(4)).equalsIgnoreCase("PRI")) {
+                    columnsNameArray.add(columns.getString(1));
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+        }
+        return columnsNameArray;
+    }
+    
     public AbstractList<FDScenario> getFDs(String tableName){ 
         AbstractList<FDScenario> listOfFDs = new ArrayList<FDScenario>(); 
         AbstractList<FDScenario> combinations = columnHelper.getAllCombinations() ; 
@@ -300,22 +351,38 @@ public class MySql implements DAL {
         return listOfFDs; 
     }
     
-    /*public AbstractList<String> getCFDs(String tableName){ 
-         * AbstractList<String> listOfFDs =new ArrayList<String>(); 
-         * AbstractList<String> conditions = new ArrayList<String>();
-         * FDScenario combinations[]=columnHelper.getAllCombinations() ; 
-         * return listOfFDs; 
-     * }*/ 
-    /* AbstractList<CFD> getCFDs(tableName)
-         * foreach columnName in getColumnsOfTable(tableName) do 
-         * conditions <- getConditions(tableName, columnName)
-             * foreach condition in conditions do
-                 * while currentCombination <- nextCombination(someParameters) do
-                 * if (isCFD(currentCombination, condition)) then 
-                     * returnCFDs.add(new CFD(currentCombination)) 
-                 * end if 
-                 * end while
-             * end for 
-         * end for 
-     * end getCFDs*/
+    public AbstractList<FDScenario> getCFDs(String tableName) {
+        AbstractList<FDScenario> listOfCFDs = new ArrayList<FDScenario>();
+        AbstractList<String> columns = getColumnsOfTable(tableName);
+        AbstractList<FDScenario> combinations = columnHelper.getAllCombinations();
+        
+        for (int columnName = 0; columnName < columns.size(); ++columnName) {
+            AbstractList<String> conditions = getConditions(tableName, columns.get(columnName));
+            for (int condition = 0; condition < conditions.size(); ++condition) {
+                for (int i=0;i<combinations.size();++i){
+                    if (isCfd(tableName, combinations.get(i).determinantColumns, combinations.get(i).dependentColumns, conditions.get(condition))) {
+                        listOfCFDs.add(combinations.get(i));
+                    }
+                }
+            }
+        }
+        return listOfCFDs;
+    }
+    
+    public AbstractList<FDScenario> getAR(String tableName) {
+        AbstractList<FDScenario> listOfAr = new ArrayList<FDScenario>();
+        AbstractList<String> columns = getColumnsOfTable(tableName);
+        AbstractList<FDScenario> combinations = columnHelper.getAllCombinations();
+        for (int columnName = 0; columnName < columns.size(); ++columnName) {
+            AbstractList<String> conditions = getConditions(tableName, columns.get(columnName));
+            for (int condition = 0; condition < conditions.size(); ++condition) {
+                for (int i = 0; i < combinations.size(); ++i) {
+                    if (isAr(tableName, conditions.get(condition), combinations.get(i).dependentColumns)) {
+                        listOfAr.add(combinations.get(i));
+                    }
+                }
+            }
+        }
+        return listOfAr;
+    }
 }

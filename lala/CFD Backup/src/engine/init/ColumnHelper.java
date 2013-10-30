@@ -155,7 +155,8 @@ public class ColumnHelper {
      * @param helpNumbers the set to combine
      * @param k the total number of the elements in the subset
      */
-    public void combinations(final AbstractList columns, int[] helpNumbers, final int k) {
+    public void combinations(final AbstractList columns, int[] helpNumbers, final int k,String table_name) {
+        // if (tableName.equals("achievements")) {
         int[] result = new int[k];
         for (int i = 0; i < result.length; i++) {
             result[i] = i + 1;
@@ -177,6 +178,7 @@ public class ColumnHelper {
             result = getNext(result, columns.size(), k);
             done = stop;
         }
+         // }else System.out.println("not correct table");
     }
     
     
