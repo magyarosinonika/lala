@@ -29,6 +29,9 @@ public class MySql implements DAL {
 
     @Override
     public Connection getConnection() {
+        if (connection == null){
+            prepareConnection();
+        }
         return connection;
     }
 
@@ -65,7 +68,7 @@ public class MySql implements DAL {
         ResultSet fd = null;
         try {
 
-            stmt_fd = connection.createStatement();
+            stmt_fd = getConnection().createStatement();
             fd = null;
             fd = stmt_fd.executeQuery(query);
         } catch (SQLException ex) {
@@ -125,7 +128,7 @@ public class MySql implements DAL {
         ResultSet cfd = null;
         try {
 
-            statemetCFd = connection.createStatement();
+            statemetCFd = getConnection().createStatement();
             cfd = null;
             cfd = statemetCFd.executeQuery(query);
         } catch (SQLException ex) {
@@ -169,7 +172,7 @@ public class MySql implements DAL {
         ResultSet ar = null;
         try {
 
-            statemetAR = connection.createStatement();
+            statemetAR = getConnection().createStatement();
             ar = null;
             ar = statemetAR.executeQuery(query);
         } catch (SQLException ex) {
@@ -203,7 +206,7 @@ public class MySql implements DAL {
         Statement stmt_conditions = null;
         ResultSet conditions = null;
         try {
-            stmt_conditions = connection.createStatement();//statement kiirva es nem alulvonas
+            stmt_conditions = getConnection().createStatement();//statement kiirva es nem alulvonas
             conditions = null;
             conditions = stmt_conditions.executeQuery(query);
             while (conditions.next()) {
@@ -223,12 +226,31 @@ public class MySql implements DAL {
         ResultSet rs = null;
         try {
             //conn.isClosed();
-            stmt = connection.createStatement();
+            stmt = getConnection().createStatement();
             rs = stmt.executeQuery("select 1 from dual;");
             return true; // connection is valid
             //}
         } catch (Exception e) {
             return false;
+        }
+    }
+    
+    
+        @Override
+    public void prepareConnection(){
+         if (Settings.getDbName() != null && Settings.getHost() != null && Settings.getPassword() != null && Settings.getPort() != 0 && Settings.getRdbms() != null && Settings.getUserName() != null) {
+            try {
+                Class.forName("com.mysql.jdbc.Driver").newInstance();
+                engine.init.DBMSManager.DALFactory(Settings.getRdbms()).connect("jdbc:mysql://" + Settings.getHost() + ":", Settings.getUserName(), Settings.getPassword(), Settings.getPort(), Settings.getDbName());
+            } catch (Exception ex) {
+                if (ex.getMessage().contains("For input string")) {
+                    JOptionPane.showMessageDialog(null, "Please enter number to the Port Field!", "Warning", 0);
+                } else {
+                    JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "Missing settings!","ERROR",0);
         }
     }
 
@@ -308,7 +330,7 @@ public class MySql implements DAL {
         try {
             Statement statementTables = null;
             ResultSet tables = null;
-            statementTables = connection.createStatement();
+            statementTables = getConnection().createStatement();
             tables = null;
             tables = statementTables.executeQuery("show tables;");
             while (tables.next()) {
@@ -326,7 +348,7 @@ public class MySql implements DAL {
         try {
             Statement statementColumns = null;
             ResultSet columns = null;
-            statementColumns = connection.createStatement();
+            statementColumns = getConnection().createStatement();
             columns = null;
             columns = statementColumns.executeQuery("show columns from " + tableName + ";");
             while (columns.next()) {

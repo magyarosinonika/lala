@@ -5,6 +5,7 @@
 package engine.init;
 
 import engine.DAL;
+import engine.FileHandler;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -13,6 +14,9 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -26,7 +30,7 @@ public final class Settings {
     private static String password = null;
     private static int port = 0;
     private static String dbName = null;
-    private static AbstractList<String> tabels = new ArrayList<String>();
+    private static AbstractList<String> tabels = null;
     private static int occurrenceNumber = 0;
     private static int maxThreadNumber = 0;
     private static String keyRdbms = "Rdbms";
@@ -38,68 +42,81 @@ public final class Settings {
     private static String keyOccurrenceNumber = "Occurrence number";
     private static String keyMaxThreadNumber = "Max Thread number";
     private static String keyTables = "Tabels";
-    
 
-    public static void initializeSettings() throws FileNotFoundException, IOException {
-        BufferedReader br = new BufferedReader(new FileReader("settings.ini"));
+    public static void initializeSettings() {
+        
         String key = "";
         String value = "";
+        String[] values = null;
         try {
-            String line = br.readLine();
-            String[] values = line.split(":");
-            char a_char = line.charAt(line.length() - 1);
-            if (a_char == ':') {
-                return;
-            }
-            key = values[0];
-            value = values[1];
-            int i = 1;
-            while (line != null) {
+            AbstractList<String> settingsContent = FileHandler.readFromFile("settings.ini");
+            String line = "";
+            for(int lineIndex = 0; lineIndex < settingsContent.size(); lineIndex++) {
+                line = settingsContent.get(lineIndex);
                 values = line.split(":");
-                a_char = line.charAt(line.length() - 1);
-                if (a_char == ':') {
-                    return;
-                }
-                key = values[0]; // 004
-                value = values[1]; // 034556
-                if (i == 1 && key.equalsIgnoreCase(keyUserName)) {
+                value = ( ( line != null ) && ( line.length() > 0 ) && ( line.charAt(line.length() - 1) != ':' ) ) ? values[1] : "" ;
+                key = values[0];
+                if (key.equalsIgnoreCase(keyUserName)) {
                     setUserName(value);
-                }
-                if (i == 2 && key.equalsIgnoreCase(keyPassword)) {
+                } else if (key.equalsIgnoreCase(keyPassword)) {
                     setPassword(value);
-                }
-                if (i == 3 && key.equalsIgnoreCase(keyHost)) {
+                } else if (key.equalsIgnoreCase(keyHost)) {
                     setHost(value);
-                }
-                if (i == 4 && key.equalsIgnoreCase(keyPort)) {
+                } else if (key.equalsIgnoreCase(keyPort)) {
                     setPort(Integer.parseInt(value));
-                }
-                if (i == 5 && key.equalsIgnoreCase(keyDbName)) {
+                } else if (key.equalsIgnoreCase(keyDbName)) {
                     setDbName(value);
-                }
-                if (i == 6 && key.equalsIgnoreCase(keyRdbms)) {
+                } else if (key.equalsIgnoreCase(keyRdbms)) {
                     setRdbms(value);
-                }
-                if (i == 7 && key.equalsIgnoreCase(keyOccurrenceNumber)) {
+                } else if (key.equalsIgnoreCase(keyOccurrenceNumber)) {
                     setOccurrenceNumber(Integer.parseInt(value));
-                }
-                if (i == 8 && key.equalsIgnoreCase(keyMaxThreadNumber)) {
+                } else if (key.equalsIgnoreCase(keyMaxThreadNumber)) {
                     setMaxThreadNumber(Integer.parseInt(value));
-                }
-                if(i == 9 && key.equalsIgnoreCase("Tabels")){
+                } else if (key.equalsIgnoreCase(keyTables)) {
+                    tabels = new ArrayList<String>();
                     String[] valuesTable = value.split(",");
                     List<String> list = Arrays.<String>asList(valuesTable);
                     ArrayList<String> arrayList = new ArrayList<String>(list);
                     setTabels(arrayList);
                 }
-                line = br.readLine();
-                ++i;
 
             }
-        } finally {
-            br.close();
+        } catch(FileNotFoundException fileNotFoundException) {
+            JOptionPane.showMessageDialog(null, "settings.ini was not found!" , "ERROR", 0);
+        } catch(IOException ioException) {
+            JOptionPane.showMessageDialog(null, "There was an error while trying to read the content of settings.ini!" , "ERROR", 0);
         }
-        
+
+    }
+    
+    private static String tabelsAsString() {
+        if ( tabels == null ){
+            return "";
+        }
+        String returnValue = "";
+        for ( int tableIndex = 0; tableIndex < tabels.size(); tableIndex++ ){
+            returnValue += ( ( returnValue.length() > 0 ) ? ( "," ) : ( "" ) ) + tabels.get(tableIndex);
+        }
+        return returnValue;
+    }
+    
+    
+    public static void save() {
+        try {
+            AbstractList<String> settingsToSave = new ArrayList<String>();
+            settingsToSave.add(Settings.keyUserName + ":" + Settings.userName);
+            settingsToSave.add(Settings.keyPassword + ":" + Settings.password);
+            settingsToSave.add(Settings.keyHost + ":" + Settings.host);
+            settingsToSave.add(Settings.keyPort + ":" + Settings.port);
+            settingsToSave.add(Settings.keyDbName + ":" + Settings.dbName);
+            settingsToSave.add(Settings.keyRdbms + ":" + Settings.rdbms);
+            settingsToSave.add(Settings.keyOccurrenceNumber + ":" + Settings.occurrenceNumber);
+            settingsToSave.add(Settings.keyMaxThreadNumber + ":" + Settings.maxThreadNumber);
+            settingsToSave.add(Settings.keyTables + ":" + tabelsAsString());
+            FileHandler.writeToFile("settings.ini", settingsToSave);
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, "There was an error while trying to write the content of settings.ini!" , "ERROR", 0);
+        }
     }
 
     public static AbstractList<String> getTabels() {
@@ -109,8 +126,6 @@ public final class Settings {
     public static void setTabels(AbstractList<String> tabels) {
         Settings.tabels = tabels;
     }
-    
-    
 
     public static int getMaxThreadNumber() {
         return maxThreadNumber;

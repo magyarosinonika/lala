@@ -6,8 +6,10 @@ package UI.forms;
 
 import engine.init.DBMSManager;
 import engine.init.Settings;
+import exceptionhandler.SetMessage;
 import java.awt.BorderLayout;
 import java.awt.Checkbox;
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -48,7 +50,7 @@ public class SettingsForm extends JFrame {
     private JTextField txtOccurenceNumber;
     private JTextField txtMaxThreadNumber;
     private JTabbedPane tabbedPane;
-    private ArrayList<Checkbox> tabelsBox;
+    private AbstractList<Checkbox> tabelsBox;
 
     public SettingsForm(String name) {
         super(name);
@@ -66,6 +68,13 @@ public class SettingsForm extends JFrame {
     public void initComponents() {
         createTabs();
     }
+    
+    public Checkbox addToTables(String label, boolean state)
+    {
+        Checkbox table = new Checkbox(label, state);
+        tabelsBox.add(table);
+        return table;
+    }
 
     public void createTabs() {
         JTabbedPane tabbedPane = new JTabbedPane();
@@ -74,57 +83,60 @@ public class SettingsForm extends JFrame {
         tabbedPane.addTab("Choose tables", createTabelsPanel());
         this.add(tabbedPane);
     }
-
+    
     public JPanel createTabelsPanel() {
+        if ((Settings.getRdbms() == null) || (Settings.getTabels() == null)) {
+            return new JPanel();
+        }
         tabelsBox = new ArrayList<Checkbox>();
         JPanel tabelPanel = new JPanel();
-        tabelPanel.setLayout(new GridLayout(2, 1));
+        tabelPanel.setLayout(new BorderLayout());
         JPanel panelInformation = new JPanel();
         AbstractList<String> tableNameArray = new ArrayList<String>();
         tableNameArray = DBMSManager.DALFactory(Settings.getRdbms()).getTableNames();
         panelInformation.setLayout(new GridLayout(tableNameArray.size(), 1));
-        Checkbox checkbox;
+        int k=0;
         for (int i = 0; i < tableNameArray.size(); ++i) {
-            checkbox = new Checkbox(tableNameArray.get(i), true);
-            panelInformation.add(checkbox = new Checkbox(tableNameArray.get(i), true));
-            tabelsBox.add(checkbox);
+            if(Settings.getTabels().contains(tableNameArray.get(i))){
+                addToTables(tableNameArray.get(i), true);
+            }else{
+                addToTables(tableNameArray.get(i), false);
+            }
+        }
+        for(int i=0;i<tabelsBox.size();++i){
+            panelInformation.add(tabelsBox.get(i));
         }
         tabelPanel.add(panelInformation, BorderLayout.CENTER);
         JPanel savePanel = new JPanel();
         tabelPanel.add(savePanel, BorderLayout.SOUTH);
         JButton btSave = new JButton();
         btSave.setText("Save");
+        btSave.setPreferredSize(new Dimension(200, 25));
         savePanel.add(btSave);
-        
         btSave.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-
-//                try {
-//                    File file = new File("settings.ini");
-//                    BufferedReader reader = new BufferedReader(new FileReader(file));
-//                    String line = "", text = "";
-//                    boolean isTabels = false;
-//                    while ((line = reader.readLine()) != null) {
-//                        if (line.contains("Tabels:")) {
-//                            isTabels = true;
-//                        }
-//                        if (isTabels) {
-//                            line = 
-//                        }
-//                        isTabels = false;
-//                        text += line + System.getProperty("line.separator");
-//                    }
-//
-//                    reader.close();
-//                    FileWriter writer = new FileWriter("settings.ini");
-//                    writer.write(text);
-//                    writer.close();
-//                    JOptionPane.showMessageDialog(null, "Save!", "Warning", 0);
-//                } catch (IOException ioe) {
-//                    System.err.println("IOException: " + ioe.getMessage());
-//                }
+               Settings.setUserName(txtUserName.getText());
+                    Settings.setDbName(txtDbName.getText());
+                    Settings.setHost(txtHost.getText());
+                    Settings.setMaxThreadNumber(Integer.parseInt(txtMaxThreadNumber.getText()));
+                    Settings.setOccurrenceNumber(Integer.parseInt(txtOccurenceNumber.getText()));
+                    Settings.setPassword(new String(txtPassword.getPassword()));
+                    Settings.setPort(Integer.parseInt(txtPort.getText()));
+                    Settings.setRdbms(cbRDBMS.getSelectedItem() + "");
+                    if ( tabelsBox != null ){
+                        AbstractList<String> tableElements = new ArrayList<String>();
+                        for (int tabelsIndex = 0; tabelsIndex < tabelsBox.size() ; tabelsIndex++) {
+                            if(tabelsBox.get(tabelsIndex).getState()) {
+                                tableElements.add(tabelsBox.get(tabelsIndex).getLabel());
+                            }
+                        }
+                        Settings.setTabels(tableElements);
+                    }
+                    Settings.save();
+                    SetMessage.SetMessageInformation("Save!");
+                    
             }
         });
         return tabelPanel;
@@ -135,8 +147,8 @@ public class SettingsForm extends JFrame {
         generalPanel.setLayout(new BorderLayout());
         generalPanel.add(createGeneralInformationPanel(), BorderLayout.CENTER);
         JPanel buttonsPanel = new JPanel();
-        buttonsPanel.setLayout(new GridLayout(1, 2));
         JButton btSave = new JButton();
+        btSave.setPreferredSize(new Dimension(200, 25));
         buttonsPanel.add(btSave);
         btSave.setText("Save");
         btSave.addActionListener(new ActionListener() {
@@ -148,48 +160,33 @@ public class SettingsForm extends JFrame {
                     Integer.parseInt(txtMaxThreadNumber.getText());
                 } catch (Exception ex) {
                     if (ex.getMessage().contains("For input string")) {
-                        JOptionPane.showMessageDialog(null, "Please enter number to the Occurence number and to the Max Thread number Field!", "Warning", 0);
+                        SetMessage.SetMessageError("Please enter number to the Occurence number and to the Max Thread number Field!");
                     }
                 }
 
                 if (txtOccurenceNumber.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter the Occurence number!", "Warning", 0);
+                    SetMessage.SetMessageError("Please enter the Occurence number!");
                 } else if (txtMaxThreadNumber.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter the max Thread number!", "Warning", 0);
+                    SetMessage.SetMessageError("Please enter the max Thread number!");
                 } else {
-                    try {
-                        File file = new File("settings.ini");
-                        BufferedReader reader = new BufferedReader(new FileReader(file));
-                        String line = "", text = "";
-                        boolean isOccurenceNumber = false;
-                        boolean isMaxThreadNumber = false;
-                        while ((line = reader.readLine()) != null) {
-                            if (line.contains("Occurrence number:")) {
-                                isOccurenceNumber = true;
-                            }
-                            if (line.contains("Max Thread number:")) {
-                                isMaxThreadNumber = true;
-                            }
-
-                            if (isOccurenceNumber) {
-                                line = "Occurrence number:" + txtOccurenceNumber.getText();
-                            }
-                            if (isMaxThreadNumber) {
-                                line = "Max Thread number:" + txtMaxThreadNumber.getText();
-                            }
-                            isOccurenceNumber = false;
-                            isMaxThreadNumber = false;
-                            text += line + System.getProperty("line.separator");
+                    Settings.setUserName(txtUserName.getText());
+                    Settings.setDbName(txtDbName.getText());
+                    Settings.setHost(txtHost.getText());
+                    Settings.setMaxThreadNumber(Integer.parseInt(txtMaxThreadNumber.getText()));
+                    Settings.setOccurrenceNumber(Integer.parseInt(txtOccurenceNumber.getText()));
+                    Settings.setPassword(new String(txtPassword.getPassword()));
+                    Settings.setPort(Integer.parseInt(txtPort.getText()));
+                    Settings.setRdbms(cbRDBMS.getSelectedItem() + "");
+                    if ( tabelsBox != null ){
+                        AbstractList<String> tableElements = new ArrayList<String>();
+                        for (int tabelsIndex = 0; tabelsIndex < tabelsBox.size() ; tabelsIndex++) {
+                            tableElements.add(tabelsBox.get(tabelsIndex).getLabel());
                         }
-
-                        reader.close();
-                        FileWriter writer = new FileWriter("settings.ini");
-                        writer.write(text);
-                        writer.close();
-                        JOptionPane.showMessageDialog(null, "Save!", "Warning", 0);
-                    } catch (IOException ioe) {
-                        System.err.println("IOException: " + ioe.getMessage());
+                        Settings.setTabels(tableElements);
                     }
+                    
+                    Settings.save();
+                    SetMessage.SetMessageInformation("Save!");
 
                 }
             }
@@ -210,49 +207,49 @@ public class SettingsForm extends JFrame {
         buttonsPanel.add(btSave);
         btTestConnect.setText("Test connection");
         btSave.setText("Save");
-        btTestConnect.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-
-                if (txtUserName.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning", 0);
-                } else if (!(txtPassword.getText().equalsIgnoreCase(txtPassword2.getText()))) {
-                    JOptionPane.showMessageDialog(null, "The password and confirmation password do not match!", "Warning", 0);
-                } else if (txtHost.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter the host!", "Warning", 0);
-                } else if (txtPort.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter the port!", "Warning", 0);
-                } else if (txtDbName.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter the Database name!", "Warning", 0);
-                } else {
-                    if ((String.valueOf(cbRDBMS.getSelectedItem())).equalsIgnoreCase("MySQL")) {
-                        try {
-                            String drivers = "com.mysql.jdbc.Driver";
-                            System.setProperty(drivers, "");
-                            Connection connection = null;
-                            try {
-                                connection = DriverManager.getConnection("jdbc:mysql://" + txtHost.getText() + ":" + Integer.parseInt(txtPort.getText()) + "/" + txtDbName.getText(), txtUserName.getText(), txtPassword.getText());
-                                JOptionPane.showMessageDialog(null, "Is a valid connection!", "Warning", 0);
-                                connection.close();
-                            } catch (SQLException ex) {
-                                if (ex.getMessage().contains("Communications link failure")) {
-                                    JOptionPane.showMessageDialog(null, "Connection failed!", "Warning", 0);
-                                } else {
-                                    JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
-                                }
-                            }
-                        } catch (Exception ex) {
-                            if (ex.getMessage().contains("For input string")) {
-                                JOptionPane.showMessageDialog(null, "Please enter number to the Port Field!", "Warning", 0);
-                            } else {
-                                JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
-                            }
-                        }
-                    }
-                }
-            }
-        });
+//        btTestConnect.addActionListener(new ActionListener() {
+//
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//
+//                if (txtUserName.getText().equalsIgnoreCase("")) {
+//                    JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning", 0);
+//                } else if (!(txtPassword.getText().equalsIgnoreCase(txtPassword2.getText()))) {
+//                    JOptionPane.showMessageDialog(null, "The password and confirmation password do not match!", "Warning", 0);
+//                } else if (txtHost.getText().equalsIgnoreCase("")) {
+//                    JOptionPane.showMessageDialog(null, "Please enter the host!", "Warning", 0);
+//                } else if (txtPort.getText().equalsIgnoreCase("")) {
+//                    JOptionPane.showMessageDialog(null, "Please enter the port!", "Warning", 0);
+//                } else if (txtDbName.getText().equalsIgnoreCase("")) {
+//                    JOptionPane.showMessageDialog(null, "Please enter the Database name!", "Warning", 0);
+//                } else {
+//                    if ((String.valueOf(cbRDBMS.getSelectedItem())).equalsIgnoreCase("MySQL")) {
+//                        try {
+//                            String drivers = "com.mysql.jdbc.Driver";
+//                            System.setProperty(drivers, "");
+//                            Connection connection = null;
+//                            try {
+//                                connection = DriverManager.getConnection("jdbc:mysql://" + txtHost.getText() + ":" + Integer.parseInt(txtPort.getText()) + "/" + txtDbName.getText(), txtUserName.getText(), txtPassword.getText());
+//                                JOptionPane.showMessageDialog(null, "Is a valid connection!", "Warning", 0);
+//                                connection.close();
+//                            } catch (SQLException ex) {
+//                                if (ex.getMessage().contains("Communications link failure")) {
+//                                    JOptionPane.showMessageDialog(null, "Connection failed!", "Warning", 0);
+//                                } else {
+//                                    JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+//                                }
+//                            }
+//                        } catch (Exception ex) {
+//                            if (ex.getMessage().contains("For input string")) {
+//                                JOptionPane.showMessageDialog(null, "Please enter number to the Port Field!", "Warning", 0);
+//                            } else {
+//                                JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        });
 
         btSave.addActionListener(new ActionListener() {
 
@@ -261,7 +258,7 @@ public class SettingsForm extends JFrame {
 
                 if (txtUserName.getText().equalsIgnoreCase("")) {
                     JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning", 0);
-                } else if (!(txtPassword.getText().equalsIgnoreCase(txtPassword2.getText()))) {
+                } else if ((txtPassword.getPassword().equals(txtPassword2.getPassword()))) {
                     JOptionPane.showMessageDialog(null, "The password and confirmation password do not match!", "Warning", 0);
                 } else if (txtHost.getText().equalsIgnoreCase("")) {
                     JOptionPane.showMessageDialog(null, "Please enter the host!", "Warning", 0);
@@ -270,72 +267,24 @@ public class SettingsForm extends JFrame {
                 } else if (txtDbName.getText().equalsIgnoreCase("")) {
                     JOptionPane.showMessageDialog(null, "Please enter the Database name!", "Warning", 0);
                 } else {
-                    if ((String.valueOf(cbRDBMS.getSelectedItem())).equalsIgnoreCase("MySQL")) {
-                        try {
-                            File file = new File("settings.ini");
-                            BufferedReader reader = new BufferedReader(new FileReader(file));
-                            String line = "", text = "";
-                            boolean isUsername = false;
-                            boolean isPassword = false;
-                            boolean isHost = false;
-                            boolean isPort = false;
-                            boolean isDatabaseName = false;
-                            boolean isRdbms = false;
-                            while ((line = reader.readLine()) != null) {
-                                if (line.contains("User name:")) {
-                                    isUsername = true;
-                                }
-                                if (line.contains("Password:")) {
-                                    isPassword = true;
-                                }
-                                if (line.contains("Host:")) {
-                                    isHost = true;
-                                }
-                                if (line.contains("Port:")) {
-                                    isPort = true;
-                                }
-                                if (line.contains("Database name:")) {
-                                    isDatabaseName = true;
-                                }
-                                if (line.contains("Rdbms:")) {
-                                    isRdbms = true;
-                                }
-                                if (isUsername) {
-                                    line = "User name:" + txtUserName.getText();
-                                }
-                                if (isPassword) {
-                                    line = "Password:" + txtPassword.getText();
-                                }
-                                if (isHost) {
-                                    line = "Host:" + txtHost.getText();
-                                }
-                                if (isPort) {
-                                    line = "Port:" + txtPort.getText();
-                                }
-                                if (isDatabaseName) {
-                                    line = "Database name:" + txtDbName.getText();
-                                }
-                                if (isRdbms) {
-                                    line = "Rdbms:mysql";
-                                }
-                                isUsername = false;
-                                isPassword = false;
-                                isHost = false;
-                                isPort = false;
-                                isDatabaseName = false;
-                                isRdbms = false;
-                                text += line + System.getProperty("line.separator");
-                            }
-
-                            reader.close();
-                            FileWriter writer = new FileWriter("settings.ini");
-                            writer.write(text);
-                            writer.close();
-                            JOptionPane.showMessageDialog(null, "Save!", "Warning", 0);
-                        } catch (IOException ioe) {
-                            System.err.println("IOException: " + ioe.getMessage());
+                    Settings.setUserName(txtUserName.getText());
+                    Settings.setDbName(txtDbName.getText());
+                    Settings.setHost(txtHost.getText());
+                    Settings.setMaxThreadNumber(Integer.parseInt(txtMaxThreadNumber.getText()));
+                    Settings.setOccurrenceNumber(Integer.parseInt(txtOccurenceNumber.getText()));
+                    Settings.setPassword(new String(txtPassword.getPassword()));
+                    Settings.setPort(Integer.parseInt(txtPort.getText()));
+                    Settings.setRdbms(cbRDBMS.getSelectedItem() + "");
+                    if ( tabelsBox != null ){
+                        AbstractList<String> tableElements = new ArrayList<String>();
+                        for (int tabelsIndex = 0; tabelsIndex < tabelsBox.size() ; tabelsIndex++) {
+                            tableElements.add(tabelsBox.get(tabelsIndex).getLabel());
                         }
+                        Settings.setTabels(tableElements);
                     }
+                    
+                    Settings.save();
+                    SetMessage.SetMessageInformation("Save!");
                 }
             }
         });
@@ -372,12 +321,12 @@ public class SettingsForm extends JFrame {
         JLabel lbRDBMS = new JLabel();
         lbRDBMS.setText("RDBMS: ");
 
-        txtUserName = new JTextField();
-        txtPassword = new JPasswordField();
-        txtPassword2 = new JPasswordField();
-        txtHost = new JTextField();
-        txtPort = new JTextField();
-        txtDbName = new JTextField();
+        txtUserName = new JTextField(Settings.getUserName());
+        txtPassword = new JPasswordField(Settings.getPassword());
+        txtPassword2 = new JPasswordField(Settings.getPassword());
+        txtHost = new JTextField(Settings.getHost());
+        txtPort = new JTextField(Settings.getPort() + "");
+        txtDbName = new JTextField(Settings.getDbName());
         String[] cbRDBMSStrings = {"MySQL", "PostgreSQL", "SQLite"};
         cbRDBMS = new JComboBox(cbRDBMSStrings);
         cbRDBMS.setSelectedIndex(0);
@@ -423,8 +372,8 @@ public class SettingsForm extends JFrame {
         JLabel lbKMaxThreadNumber = new JLabel();
         lbKMaxThreadNumber.setText("Max thread number: ");
 
-        txtOccurenceNumber = new JTextField();
-        txtMaxThreadNumber = new JTextField();
+        txtOccurenceNumber = new JTextField(Settings.getOccurrenceNumber() + "");
+        txtMaxThreadNumber = new JTextField(Settings.getMaxThreadNumber() + "");
 
         labelsPanel.add(lbOccurenceNumber);
         textsPanel.add(txtOccurenceNumber);

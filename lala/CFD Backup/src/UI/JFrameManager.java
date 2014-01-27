@@ -7,6 +7,9 @@ package UI;
 import java.awt.Component;
 import java.lang.reflect.InvocationTargetException;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import UI.forms.*;
+import exceptionhandler.SetMessage;
 
 /**
  *
@@ -29,28 +32,35 @@ public class JFrameManager  {
                 frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             }
             frame.setLocationRelativeTo(parentComponent);
-            frame.setSize(400, 250);
+            frame.setSize(450, 300);
             frame.setResizable(false);
             frame.setTitle(name);
             frame.setVisible(true);
         }
         catch (InstantiationException instantiationException)
         {
+            SetMessage.SetMessageError("Class object cannot be instantiated!");
             //ExceptionHandler.handleException(instantiationException, parentComponent, Language.getMessage(Language.InstantiationExceptionKey), c.getName());
         }
         catch(NoSuchMethodException noSuchMethodException)
         {
-            //ExceptionHandler.handleException(noSuchMethodException, parentComponent, Language.NoSuchMethodExceptionKey, "NamedConstructor");
-            //ExceptionHandler.handleException(noSuchMethodException, parentComponent, Language.getMessage(Language.NoSuchMethodExceptionKey), Language.getMessage(Language.ConstructorOrJFrameMethod));
+            SetMessage.SetMessageError("Method cannot be found!");
         }
         catch (IllegalAccessException illegalAccessException)
         {
-            //ExceptionHandler.handleException(illegalAccessException, parentComponent, Language.getMessage(Language.IllegalAccessExceptionKey));
+            SetMessage.SetMessageError("The currently executing method does not have access to the definition of the specified class, field, method or constructor!");
         }
         catch (InvocationTargetException invocationTargetException)
         {
-            //ExceptionHandler.handleException(invocationTargetException, parentComponent, Language.getMessage(Language.InvocationTargetExceptionKey));
-        } finally {
+            SetMessage.SetMessageError("InvocationTargetException");
+        }
+        catch(Exception exception){
+            //JOptionPane.showMessageDialog(null, exception.getMessage(),"ERROR",0);
+            for(int i=0;i<exception.getStackTrace().length;++i){
+                System.out.println(exception.getStackTrace()[i]);
+            }
+        }
+        finally {
             return frame;
         }
     }
