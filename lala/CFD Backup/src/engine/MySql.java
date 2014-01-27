@@ -295,7 +295,6 @@ public class MySql implements DAL {
     public void delete() {
         System.out.println("delete");
     }
-    
 
     @Override
     public void generate() {
