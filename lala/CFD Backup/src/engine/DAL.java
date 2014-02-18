@@ -25,10 +25,12 @@ public interface DAL {//javaDocs utana olvasni
     boolean checkConnection();
     Connection getConnection();
     public AbstractList<String>getTableNames();
-    public AbstractList<FDScenario>getFDs(String tableName);
-    public AbstractList<FDScenario> getCFDs(String tableName);
-    public AbstractList<FDScenario> getAR(String tableName);
+    public AbstractList<FDScenario> getFDs(String tableName, AbstractList<String> columnNames) ;
+    public AbstractList<FDScenario> getCFDs(String tableName, AbstractList<String> columnNames);
+    public AbstractList<FDScenario> getAR(String tableName, AbstractList<String> columnNames);
     void prepareConnection();
     public void setConnection(Connection conn);
+    public void createDependency(AbstractList<FDScenario> dependencies);
+    public AbstractList<String> getColumnsOfTable(String tableName);
     //void combinations(final AbstractList columns, int[] helpNumbers, final int k);
 }

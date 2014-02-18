@@ -6,8 +6,12 @@ package engine;
 
 import UI.JFrameManager;
 import UI.forms.SettingsForm;
+import com.mysql.jdbc.PreparedStatement;
 import engine.init.ColumnHelper;
+import engine.init.Combination;
 import engine.init.Settings;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.AbstractList;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -28,6 +32,7 @@ public class MySql implements DAL {
     private static Connection connection;
     private ArrayList<String> columnsArray = new ArrayList<String>();
     private ColumnHelper columnHelper;
+    private int insertCount;
 
     @Override
     public Connection getConnection() {
@@ -36,9 +41,9 @@ public class MySql implements DAL {
         }
         return connection;
     }
-    
+
     @Override
-    public void setConnection(Connection conn){
+    public void setConnection(Connection conn) {
         connection = conn;
     }
 
@@ -336,6 +341,7 @@ public class MySql implements DAL {
         }
     }
 
+    @Override
     public AbstractList<String> getTableNames() {
         AbstractList<String> tableNameArray = new ArrayList<String>();
         try {
@@ -373,49 +379,296 @@ public class MySql implements DAL {
         return columnsNameArray;
     }
 
-    public AbstractList<FDScenario> getFDs(String tableName) {
+    @Override
+    public AbstractList<FDScenario> getFDs(String tableName, AbstractList<String> columnNames) {
+        int[] currentScenario = null;
         AbstractList<FDScenario> listOfFDs = new ArrayList<FDScenario>();
-        AbstractList<FDScenario> combinations = columnHelper.getAllCombinations();
-        for (int i = 0; i < combinations.size(); ++i) {
-            if (isFd(tableName, combinations.get(i).determinantColumns, combinations.get(i).dependentColumns)) {
-                listOfFDs.add(combinations.get(i));
+        do {
+            if (currentScenario == null) {
+                currentScenario = Combination.getNextScenario(columnNames.size(), 3);
+            } else {
+                currentScenario = Combination.getNextScenario(currentScenario, 3);
             }
-        }
+
+            if (currentScenario != null) {
+
+                AbstractList<String> determinantColumns = new ArrayList<String>();
+                AbstractList<String> dependentColumns = new ArrayList<String>();
+
+                for (int currentScenarioIndex = 0; currentScenarioIndex < currentScenario.length; ++currentScenarioIndex) {
+                    switch (currentScenario[currentScenarioIndex]) {
+                        case 1:
+                            determinantColumns.add(columnNames.get(currentScenarioIndex));
+                            break;
+                        case 2:
+                            dependentColumns.add(columnNames.get(currentScenarioIndex));
+                            break;
+                    }
+                }
+
+
+                if (isFd(tableName, determinantColumns, dependentColumns)) {
+//                    if (listOfFDs.contains(new FDScenario(determinantColumns, dependentColumns))) {
+//                        System.out.println("Mar tartalmazza ezt a sort!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//                    } else 
+                    listOfFDs.add(new FDScenario(determinantColumns, dependentColumns));
+
+                }
+            }
+        } while (currentScenario != null);
+
+//        System.out.println(listOfFDs.size());
+//        System.out.println("az fd-k listaja");
+//         for(int k=0; k<listOfFDs.size();++k){
+//            System.out.println("determinant: "+ listOfFDs.get(k).determinantColumns );
+//            System.out.println("dependent: "+listOfFDs.get(k).dependentColumns);  
+//            System.out.println();
+//            }
+
+
         return listOfFDs;
     }
 
-    public AbstractList<FDScenario> getCFDs(String tableName) {
+    public AbstractList<FDScenario> getCFDs(String tableName, AbstractList<String> columnNames) {
         AbstractList<FDScenario> listOfCFDs = new ArrayList<FDScenario>();
-        AbstractList<String> columns = getColumnsOfTable(tableName);
-        AbstractList<FDScenario> combinations = columnHelper.getAllCombinations();
+        int[] currentScenario = null;
+        int columnsSize = columnNames.size();//columns number
+        AbstractList<String>[] columnsConditions = new ArrayList[columnsSize];//mekkor nagysagu strineket foglaljak le?
 
-        for (int columnName = 0; columnName < columns.size(); ++columnName) {
-            AbstractList<String> conditions = getConditions(tableName, columns.get(columnName));
-            for (int condition = 0; condition < conditions.size(); ++condition) {
-                for (int i = 0; i < combinations.size(); ++i) {
-                    if (isCfd(tableName, combinations.get(i).determinantColumns, combinations.get(i).dependentColumns, conditions.get(condition))) {
-                        listOfCFDs.add(combinations.get(i));
+        for (int i = 0; i < columnsSize; i++) {
+            columnsConditions[i] = new ArrayList<String>();
+        }
+
+        for (int column = 0; column < columnsSize; ++column) {//annyi eleme van a tombnek ahany oszlop van
+            columnsConditions[column].addAll(new ArrayList<String>(getConditions(tableName, columnNames.get(column))));
+        }
+        System.out.println("Kondiciok oszloponkent a parameterkent atadott tablabol:" + tableName);
+        for (int i = 0; i < columnsConditions.length; ++i) {
+            for (int j = 0; j < columnsConditions[i].size(); ++j) {
+                System.out.println(columnsConditions[i].get(j));
+            }
+        }
+
+        //felepitem az uj oszlopokat tartalmazo tombot kiveve a kondicio oszlopot
+        for (int i = 0; i < columnsConditions.length; ++i) {
+            //minden elem egy feltetel halmaz
+            //for(int j=0 ;j<columnsConditions[i].size() ; ++j){
+            //j az i. oszlop halamazank az indexe
+            if (!columnsConditions[i].isEmpty()) {
+                String myColumn = columnsConditions[i].get(0).substring(0, columnsConditions[i].get(0).indexOf("="));
+                System.out.println("Kondicio oszlop: " + myColumn);
+
+                AbstractList<String> columnNameswithoutConditionColumn = new ArrayList<String>();
+
+                for (int column = 0; column < columnsSize; ++column) {
+
+                    if (!columnNames.get(column).equalsIgnoreCase(myColumn)) {
+                        columnNameswithoutConditionColumn.add(columnNames.get(column));
                     }
                 }
+//                for (int ii = 0; ii < columnNameswithoutConditionColumn.size(); ++ii) {
+//                    System.out.println(" kondicio oszlop nelkuli oszlopnevek   " + columnNameswithoutConditionColumn.get(ii));
+//                }
+
+                do {
+
+
+                    if (currentScenario == null) {
+                        currentScenario = Combination.getNextScenario(columnNameswithoutConditionColumn.size(), 3);
+                    } else {
+                        currentScenario = Combination.getNextScenario(currentScenario, 3);
+                    }
+
+                    if (currentScenario != null) {
+
+                        AbstractList<String> determinantColumns = new ArrayList<String>();
+                        AbstractList<String> dependentColumns = new ArrayList<String>();
+
+                        for (int currentScenarioIndex = 0; currentScenarioIndex < currentScenario.length; ++currentScenarioIndex) {
+                            switch (currentScenario[currentScenarioIndex]) {
+                                case 1:
+                                    determinantColumns.add(columnNameswithoutConditionColumn.get(currentScenarioIndex));//hibat dob
+                                    break;
+                                case 2:
+                                    dependentColumns.add(columnNameswithoutConditionColumn.get(currentScenarioIndex));
+                                    break;
+
+                            }
+                        }
+                        for (int column = 0; column < columnNameswithoutConditionColumn.size(); ++column) {
+                            AbstractList<String> conditions = getConditions(tableName, columnNameswithoutConditionColumn.get(column));
+                            for (int condition = 0; condition < conditions.size(); ++condition) {
+                                if (isCfd(tableName, determinantColumns, dependentColumns, conditions.get(condition))) {
+                                    listOfCFDs.add(new FDScenario(determinantColumns, dependentColumns, conditions.get(condition)));
+                                }
+                            }
+                        }
+                    }
+                } while (currentScenario != null);
+
             }
+            for (int k = 0; k < listOfCFDs.size(); ++k) {
+                System.out.println("a cfd-k listaja: " + "determinant: " + listOfCFDs.get(k).determinantColumns + "dependent: " + listOfCFDs.get(k).dependentColumns + "kondicio " + listOfCFDs.get(k).condition);
+            }
+
+
         }
         return listOfCFDs;
     }
 
-    public AbstractList<FDScenario> getAR(String tableName) {
+    @Override
+    public AbstractList<FDScenario> getAR(String tableName, AbstractList<String> columnNames) {
         AbstractList<FDScenario> listOfAr = new ArrayList<FDScenario>();
-        AbstractList<String> columns = getColumnsOfTable(tableName);
-        AbstractList<FDScenario> combinations = columnHelper.getAllCombinations();
-        for (int columnName = 0; columnName < columns.size(); ++columnName) {
-            AbstractList<String> conditions = getConditions(tableName, columns.get(columnName));
-            for (int condition = 0; condition < conditions.size(); ++condition) {
-                for (int i = 0; i < combinations.size(); ++i) {
-                    if (isAr(tableName, conditions.get(condition), combinations.get(i).dependentColumns)) {
-                        listOfAr.add(combinations.get(i));
-                    }
-                }
+        int[] currentScenario = null;
+        int columnsSize = columnNames.size();//columns number
+        AbstractList<String>[] columnsConditions = new ArrayList[columnsSize];//mekkor nagysagu strineket foglaljak le?
+
+        for (int i = 0; i < columnsSize; i++) {
+            columnsConditions[i] = new ArrayList<String>();
+        }
+
+        for (int column = 0; column < columnsSize; ++column) {//annyi eleme van a tombnek ahany oszlop van
+            columnsConditions[column].addAll(new ArrayList<String>(getConditions(tableName, columnNames.get(column))));
+        }
+        System.out.println("Kondiciok oszloponkent a parameterkent atadott tablabol:" + tableName);
+        for (int i = 0; i < columnsConditions.length; ++i) {
+            for (int j = 0; j < columnsConditions[i].size(); ++j) {
+                System.out.println(columnsConditions[i].get(j));
             }
         }
+
+        //felepitem az uj oszlopokat tartalmazo tombot kiveve a kondicio oszlopot
+        for (int i = 0; i < columnsConditions.length; ++i) {
+            //minden elem egy feltetel halmaz
+            //for(int j=0 ;j<columnsConditions[i].size() ; ++j){
+            //j az i. oszlop halamazank az indexe
+            if (!columnsConditions[i].isEmpty()) {
+                String myColumn = columnsConditions[i].get(0).substring(0, columnsConditions[i].get(0).indexOf("="));
+                System.out.println("Kondicio oszlop: " + myColumn);
+
+                AbstractList<String> columnNameswithoutConditionColumn = new ArrayList<String>();
+
+                for (int column = 0; column < columnsSize; ++column) {
+
+                    if (!columnNames.get(column).equalsIgnoreCase(myColumn)) {
+                        columnNameswithoutConditionColumn.add(columnNames.get(column));
+                    }
+                }
+//                for (int ii = 0; ii < columnNameswithoutConditionColumn.size(); ++ii) {
+//                    System.out.println(" kondicio oszlop nelkuli oszlopnevek   " + columnNameswithoutConditionColumn.get(ii));
+//                }
+
+                do {
+
+
+                    if (currentScenario == null) {
+                        currentScenario = Combination.getNextScenario(columnNameswithoutConditionColumn.size(), 2);
+                    } else {
+                        currentScenario = Combination.getNextScenario(currentScenario, 2);
+                    }
+
+                    if (currentScenario != null) {
+
+                        AbstractList<String> dependentColumns = new ArrayList<String>();
+
+                        for (int currentScenarioIndex = 0; currentScenarioIndex < currentScenario.length; ++currentScenarioIndex) {
+                            switch (currentScenario[currentScenarioIndex]) {
+                                case 1:
+                                    dependentColumns.add(columnNameswithoutConditionColumn.get(currentScenarioIndex));
+                                    break;
+                            }
+                        }
+                        for (int column = 0; column < columnNameswithoutConditionColumn.size(); ++column) {
+                            AbstractList<String> conditions = getConditions(tableName, columnNameswithoutConditionColumn.get(column));
+                            for (int condition = 0; condition < conditions.size(); ++condition) {
+                                if (isAr(tableName, conditions.get(condition), dependentColumns)) {
+                                    listOfAr.add(new FDScenario(dependentColumns, conditions.get(condition)));
+                                }
+                            }
+                        }
+                    }
+                } while (currentScenario != null);
+
+            }
+//            for(int k=0; k<listOfAr.size();++k){
+//            System.out.println("a ar-k listaja: "+"dependent: "+listOfAr.get(k).dependentColumns+"kondicio"+listOfAr.get(k).condition);
+//            }
+        }
+
         return listOfAr;
+    }
+
+    @Override
+    public void createDependency(AbstractList<FDScenario> dependencies) {
+        //String token = new BigInteger(8192, new SecureRandom()).toString(512);
+        PreparedStatement preparedStatement = null;
+
+        try {
+
+            for (int k = 0; k < dependencies.size(); ++k) {
+                String sql = "INSERT INTO Dependency (condi, insertToken) VALUES(?,?); ";
+                preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+
+
+                //tobbszor fog szerepelni egy kondicio mert mas osszefuggesben is van veve,
+                //mas a meghatarozo es meghatarozott oszlop de uugyan az a kondicio
+                String token = new BigInteger(1192, new SecureRandom()).toString(512);
+
+                FDScenario currentDependency = dependencies.get(k);
+                preparedStatement.setString(1, currentDependency.condition);
+                preparedStatement.setString(2, token);
+                insertCount = preparedStatement.executeUpdate();
+
+                //TODO : get the last dependendency id matching the generated token
+                //select max(id) from Dependency where insertToken = ? 
+                //the ? will represent our token variable----->lehet kell fetch elni
+
+                sql = "select max(id) as maxId from Dependency where insertToken = ? ";
+                preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+                preparedStatement.setString(1, token);
+                ResultSet idMax = preparedStatement.executeQuery();
+                int myDependencyId = -1;
+                while (idMax.next()) {
+                    myDependencyId = idMax.getInt("maxId");
+                }
+
+
+                //int dependencyId = -1;
+
+                sql = "INSERT INTO dependencycolumn (dependencyId, columnName , isDeterminantColumn, value  ) VALUES(?,?,?,?); ";
+
+                preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+
+
+                if ((currentDependency.determinantColumns != null) && (!currentDependency.determinantColumns.isEmpty())) {
+                    for (int determinantColumnIndex = 0; determinantColumnIndex < currentDependency.determinantColumns.size(); determinantColumnIndex++) {
+                        preparedStatement.setInt(1, myDependencyId);
+                        preparedStatement.setString(2, currentDependency.determinantColumns.get(determinantColumnIndex));
+                        preparedStatement.setInt(3, 1);
+                        preparedStatement.setString(4, "");
+                        preparedStatement.addBatch();
+                    }
+                }
+                for (int dependentColumnIndex = 0; dependentColumnIndex < currentDependency.dependentColumns.size(); dependentColumnIndex++) {
+                    preparedStatement.setInt(1, myDependencyId);
+                    preparedStatement.setString(2, currentDependency.dependentColumns.get(dependentColumnIndex));
+                    preparedStatement.setInt(3, 0);
+                    preparedStatement.setString(4, currentDependency.values.get(dependentColumnIndex));
+                    preparedStatement.addBatch();
+                }
+
+                preparedStatement.executeBatch();
+
+                //TODO update the insert token of the currently inserted dependency to null
+
+                sql = "update Dependency set insertToken = null where id = ?";
+                preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+                preparedStatement.setInt(1, myDependencyId);
+                preparedStatement.executeUpdate();
+
+            }
+        } catch (SQLException e) {
+            System.out.println("Could not insert data to the database " + e.getStackTrace());
+        }
     }
 }
