@@ -4,6 +4,7 @@
  */
 package UI.forms;
 
+import UI.formvalidator.SettingsHandler;
 import engine.init.DBMSManager;
 import engine.init.Settings;
 import exceptionhandler.SetMessage;
@@ -13,14 +14,6 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import javax.swing.BorderFactory;
@@ -47,7 +40,7 @@ public class SettingsForm extends JFrame {
     private JTextField txtPort;
     private JTextField txtDbName;
     private JComboBox cbRDBMS;
-    private JTextField txtOccurenceNumber;
+    private JTextField txtMaxOccurenceNumber;
     private JTextField txtMaxThreadNumber;
     private JTabbedPane tabbedPane;
     private AbstractList<Checkbox> tabelsBox;
@@ -68,9 +61,8 @@ public class SettingsForm extends JFrame {
     public void initComponents() {
         createTabs();
     }
-    
-    public Checkbox addToTables(String label, boolean state)
-    {
+
+    public Checkbox addToTables(String label, boolean state) {
         Checkbox table = new Checkbox(label, state);
         tabelsBox.add(table);
         return table;
@@ -83,9 +75,9 @@ public class SettingsForm extends JFrame {
         tabbedPane.addTab("Choose tables", createTabelsPanel());
         this.add(tabbedPane);
     }
-    
+
     public JPanel createTabelsPanel() {
-        if ((Settings.getRdbms() == null) || (Settings.getTabels() == null)) {
+        if ((Settings.getRdbms() == null) || (Settings.getTabels() == null) || DBMSManager.DALFactory(Settings.getRdbms()).getConnection() == null) {
             return new JPanel();
         }
         tabelsBox = new ArrayList<Checkbox>();
@@ -95,15 +87,15 @@ public class SettingsForm extends JFrame {
         AbstractList<String> tableNameArray = new ArrayList<String>();
         tableNameArray = DBMSManager.DALFactory(Settings.getRdbms()).getTableNames();
         panelInformation.setLayout(new GridLayout(tableNameArray.size(), 1));
-        int k=0;
+        int k = 0;
         for (int i = 0; i < tableNameArray.size(); ++i) {
-            if(Settings.getTabels().contains(tableNameArray.get(i))){
+            if (Settings.getTabels().contains(tableNameArray.get(i))) {
                 addToTables(tableNameArray.get(i), true);
-            }else{
+            } else {
                 addToTables(tableNameArray.get(i), false);
             }
         }
-        for(int i=0;i<tabelsBox.size();++i){
+        for (int i = 0; i < tabelsBox.size(); ++i) {
             panelInformation.add(tabelsBox.get(i));
         }
         tabelPanel.add(panelInformation, BorderLayout.CENTER);
@@ -117,26 +109,26 @@ public class SettingsForm extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-               Settings.setUserName(txtUserName.getText());
-                    Settings.setDbName(txtDbName.getText());
-                    Settings.setHost(txtHost.getText());
-                    Settings.setMaxThreadNumber(Integer.parseInt(txtMaxThreadNumber.getText()));
-                    Settings.setOccurrenceNumber(Integer.parseInt(txtOccurenceNumber.getText()));
-                    Settings.setPassword(new String(txtPassword.getPassword()));
-                    Settings.setPort(Integer.parseInt(txtPort.getText()));
-                    Settings.setRdbms(cbRDBMS.getSelectedItem() + "");
-                    if ( tabelsBox != null ){
-                        AbstractList<String> tableElements = new ArrayList<String>();
-                        for (int tabelsIndex = 0; tabelsIndex < tabelsBox.size() ; tabelsIndex++) {
-                            if(tabelsBox.get(tabelsIndex).getState()) {
-                                tableElements.add(tabelsBox.get(tabelsIndex).getLabel());
-                            }
+                Settings.setUserName(txtUserName.getText());
+                Settings.setDbName(txtDbName.getText());
+                Settings.setHost(txtHost.getText());
+                Settings.setMaxThreadNumber(Integer.parseInt(txtMaxThreadNumber.getText()));
+                Settings.setOccurrenceNumber(Integer.parseInt(txtMaxOccurenceNumber.getText()));
+                Settings.setPassword(new String(txtPassword.getPassword()));
+                Settings.setPort(Integer.parseInt(txtPort.getText()));
+                Settings.setRdbms(cbRDBMS.getSelectedItem() + "");
+                if (tabelsBox != null) {
+                    AbstractList<String> tableElements = new ArrayList<String>();
+                    for (int tabelsIndex = 0; tabelsIndex < tabelsBox.size(); tabelsIndex++) {
+                        if (tabelsBox.get(tabelsIndex).getState()) {
+                            tableElements.add(tabelsBox.get(tabelsIndex).getLabel());
                         }
-                        Settings.setTabels(tableElements);
                     }
-                    Settings.save();
-                    SetMessage.SetMessageInformation("Save!");
-                    
+                    Settings.setTabels(tableElements);
+                }
+                Settings.save();
+                SetMessage.SetMessageInformation("Save!");
+
             }
         });
         return tabelPanel;
@@ -155,36 +147,23 @@ public class SettingsForm extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                try {
-                    Integer.parseInt(txtOccurenceNumber.getText());
-                    Integer.parseInt(txtMaxThreadNumber.getText());
-                } catch (Exception ex) {
-                    if (ex.getMessage().contains("For input string")) {
-                        SetMessage.SetMessageError("Please enter number to the Occurence number and to the Max Thread number Field!");
-                    }
-                }
-
-                if (txtOccurenceNumber.getText().equalsIgnoreCase("")) {
-                    SetMessage.SetMessageError("Please enter the Occurence number!");
-                } else if (txtMaxThreadNumber.getText().equalsIgnoreCase("")) {
-                    SetMessage.SetMessageError("Please enter the max Thread number!");
-                } else {
+                if(SettingsHandler.checkGeneralSettings(txtMaxOccurenceNumber.getText(), txtMaxThreadNumber.getText())){
                     Settings.setUserName(txtUserName.getText());
                     Settings.setDbName(txtDbName.getText());
                     Settings.setHost(txtHost.getText());
                     Settings.setMaxThreadNumber(Integer.parseInt(txtMaxThreadNumber.getText()));
-                    Settings.setOccurrenceNumber(Integer.parseInt(txtOccurenceNumber.getText()));
+                    Settings.setOccurrenceNumber(Integer.parseInt(txtMaxOccurenceNumber.getText()));
                     Settings.setPassword(new String(txtPassword.getPassword()));
                     Settings.setPort(Integer.parseInt(txtPort.getText()));
                     Settings.setRdbms(cbRDBMS.getSelectedItem() + "");
-                    if ( tabelsBox != null ){
+                    if (tabelsBox != null) {
                         AbstractList<String> tableElements = new ArrayList<String>();
-                        for (int tabelsIndex = 0; tabelsIndex < tabelsBox.size() ; tabelsIndex++) {
+                        for (int tabelsIndex = 0; tabelsIndex < tabelsBox.size(); tabelsIndex++) {
                             tableElements.add(tabelsBox.get(tabelsIndex).getLabel());
                         }
                         Settings.setTabels(tableElements);
                     }
-                    
+
                     Settings.save();
                     SetMessage.SetMessageInformation("Save!");
 
@@ -207,82 +186,47 @@ public class SettingsForm extends JFrame {
         buttonsPanel.add(btSave);
         btTestConnect.setText("Test connection");
         btSave.setText("Save");
-//        btTestConnect.addActionListener(new ActionListener() {
-//
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//
-//                if (txtUserName.getText().equalsIgnoreCase("")) {
-//                    JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning", 0);
-//                } else if (!(txtPassword.getText().equalsIgnoreCase(txtPassword2.getText()))) {
-//                    JOptionPane.showMessageDialog(null, "The password and confirmation password do not match!", "Warning", 0);
-//                } else if (txtHost.getText().equalsIgnoreCase("")) {
-//                    JOptionPane.showMessageDialog(null, "Please enter the host!", "Warning", 0);
-//                } else if (txtPort.getText().equalsIgnoreCase("")) {
-//                    JOptionPane.showMessageDialog(null, "Please enter the port!", "Warning", 0);
-//                } else if (txtDbName.getText().equalsIgnoreCase("")) {
-//                    JOptionPane.showMessageDialog(null, "Please enter the Database name!", "Warning", 0);
+        btTestConnect.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                if (SettingsHandler.checkConnectionSettings(txtUserName.getText(), new String(txtPassword.getPassword()), new String(txtPassword2.getPassword()), txtHost.getText(), txtPort.getText(), txtDbName.getText())) {
+                    DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").connect("jdbc:mysql://" + txtHost.getText() + ":", txtUserName.getText(), new String(txtPassword.getPassword()), Integer.parseInt(txtPort.getText()), txtDbName.getText());
+                    DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").setConnection(null);
+                }
+
+
+//                if (DBMSManager.DALFactory(Settings.getRdbms()).getConnection() == null) {
+//                    SetMessage.SetMessageInformation("Faild!");
 //                } else {
-//                    if ((String.valueOf(cbRDBMS.getSelectedItem())).equalsIgnoreCase("MySQL")) {
-//                        try {
-//                            String drivers = "com.mysql.jdbc.Driver";
-//                            System.setProperty(drivers, "");
-//                            Connection connection = null;
-//                            try {
-//                                connection = DriverManager.getConnection("jdbc:mysql://" + txtHost.getText() + ":" + Integer.parseInt(txtPort.getText()) + "/" + txtDbName.getText(), txtUserName.getText(), txtPassword.getText());
-//                                JOptionPane.showMessageDialog(null, "Is a valid connection!", "Warning", 0);
-//                                connection.close();
-//                            } catch (SQLException ex) {
-//                                if (ex.getMessage().contains("Communications link failure")) {
-//                                    JOptionPane.showMessageDialog(null, "Connection failed!", "Warning", 0);
-//                                } else {
-//                                    JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
-//                                }
-//                            }
-//                        } catch (Exception ex) {
-//                            if (ex.getMessage().contains("For input string")) {
-//                                JOptionPane.showMessageDialog(null, "Please enter number to the Port Field!", "Warning", 0);
-//                            } else {
-//                                JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
-//                            }
-//                        }
-//                    }
+//                    SetMessage.SetMessageInformation("Ok!");
+//                    DBMSManager.DALFactory(Settings.getRdbms()).setConnection(null);
 //                }
-//            }
-//        });
+            }
+        });
 
         btSave.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-
-                if (txtUserName.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning", 0);
-                } else if ((txtPassword.getPassword().equals(txtPassword2.getPassword()))) {
-                    JOptionPane.showMessageDialog(null, "The password and confirmation password do not match!", "Warning", 0);
-                } else if (txtHost.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter the host!", "Warning", 0);
-                } else if (txtPort.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter the port!", "Warning", 0);
-                } else if (txtDbName.getText().equalsIgnoreCase("")) {
-                    JOptionPane.showMessageDialog(null, "Please enter the Database name!", "Warning", 0);
-                } else {
+                if (SettingsHandler.checkConnectionSettings(txtUserName.getText(), new String(txtPassword.getPassword()), new String(txtPassword2.getPassword()), txtHost.getText(), txtPort.getText(), txtDbName.getText())) {
                     Settings.setUserName(txtUserName.getText());
                     Settings.setDbName(txtDbName.getText());
                     Settings.setHost(txtHost.getText());
                     Settings.setMaxThreadNumber(Integer.parseInt(txtMaxThreadNumber.getText()));
-                    Settings.setOccurrenceNumber(Integer.parseInt(txtOccurenceNumber.getText()));
+                    Settings.setOccurrenceNumber(Integer.parseInt(txtMaxOccurenceNumber.getText()));
                     Settings.setPassword(new String(txtPassword.getPassword()));
                     Settings.setPort(Integer.parseInt(txtPort.getText()));
                     Settings.setRdbms(cbRDBMS.getSelectedItem() + "");
-                    if ( tabelsBox != null ){
+                    if (tabelsBox != null) {
                         AbstractList<String> tableElements = new ArrayList<String>();
-                        for (int tabelsIndex = 0; tabelsIndex < tabelsBox.size() ; tabelsIndex++) {
+                        for (int tabelsIndex = 0; tabelsIndex < tabelsBox.size(); tabelsIndex++) {
                             tableElements.add(tabelsBox.get(tabelsIndex).getLabel());
                         }
                         Settings.setTabels(tableElements);
                     }
-                    
+
                     Settings.save();
                     SetMessage.SetMessageInformation("Save!");
                 }
@@ -372,11 +316,11 @@ public class SettingsForm extends JFrame {
         JLabel lbKMaxThreadNumber = new JLabel();
         lbKMaxThreadNumber.setText("Max thread number: ");
 
-        txtOccurenceNumber = new JTextField(Settings.getOccurrenceNumber() + "");
+        txtMaxOccurenceNumber = new JTextField(Settings.getOccurrenceNumber() + "");
         txtMaxThreadNumber = new JTextField(Settings.getMaxThreadNumber() + "");
 
         labelsPanel.add(lbOccurenceNumber);
-        textsPanel.add(txtOccurenceNumber);
+        textsPanel.add(txtMaxOccurenceNumber);
 
         labelsPanel.add(lbKMaxThreadNumber);
         textsPanel.add(txtMaxThreadNumber);

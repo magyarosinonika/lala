@@ -4,6 +4,8 @@
  */
 package engine;
 
+import UI.JFrameManager;
+import UI.forms.SettingsForm;
 import engine.init.ColumnHelper;
 import engine.init.Settings;
 import java.util.AbstractList;
@@ -29,10 +31,15 @@ public class MySql implements DAL {
 
     @Override
     public Connection getConnection() {
-        if (connection == null){
+        if (connection == null) {
             prepareConnection();
         }
         return connection;
+    }
+    
+    @Override
+    public void setConnection(Connection conn){
+        connection = conn;
     }
 
     /**
@@ -102,12 +109,12 @@ public class MySql implements DAL {
      */
     @Override
     public boolean isCfd(String table, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition) {
-        condition=condition.trim();
+        condition = condition.trim();
         String firstCondition = " t1." + condition + " ";
         String secondCondition = " t2." + condition + " ";
         String query = "select count(*) "
                 + "from " + table + " t1, " + table + " t2"
-                + " where (" + firstCondition +") and  ("+ secondCondition +") and( ";
+                + " where (" + firstCondition + ") and  (" + secondCondition + ") and( ";
 
         for (int i = 0; i < determinantColumns.size(); i++) {
             if (i > 0) {
@@ -153,12 +160,12 @@ public class MySql implements DAL {
 
     @Override
     public boolean isAr(String table, String condition, AbstractList<String> dependentColumns) {
-        condition=condition.trim();
+        condition = condition.trim();
         String firstCondition = " t1." + condition + " ";
         String secondCondition = " t2." + condition + " ";
         String query = "select count(*) "
                 + "from " + table + " t1, " + table + " t2"
-                + " where (" + firstCondition +" and  "+ secondCondition +") and( ";
+                + " where (" + firstCondition + " and  " + secondCondition + ") and( ";
 
         for (int i = 0; i < dependentColumns.size(); i++) {
             if (i > 0) {
@@ -234,11 +241,10 @@ public class MySql implements DAL {
             return false;
         }
     }
-    
-    
-        @Override
-    public void prepareConnection(){
-         if (Settings.getDbName() != null && Settings.getHost() != null && Settings.getPassword() != null && Settings.getPort() != 0 && Settings.getRdbms() != null && Settings.getUserName() != null) {
+
+    @Override
+    public void prepareConnection() {
+        if (Settings.getDbName() != null && Settings.getHost() != null && Settings.getPassword() != null && Settings.getPort() != 0 && Settings.getRdbms() != null && Settings.getUserName() != null) {
             try {
                 Class.forName("com.mysql.jdbc.Driver").newInstance();
                 engine.init.DBMSManager.DALFactory(Settings.getRdbms()).connect("jdbc:mysql://" + Settings.getHost() + ":", Settings.getUserName(), Settings.getPassword(), Settings.getPort(), Settings.getDbName());
@@ -250,7 +256,7 @@ public class MySql implements DAL {
                 }
             }
         } else {
-            JOptionPane.showMessageDialog(null, "Missing settings!","ERROR",0);
+            JOptionPane.showMessageDialog(null, "Missing settings!", "ERROR", 0);
         }
     }
 
@@ -260,13 +266,18 @@ public class MySql implements DAL {
         System.setProperty(drivers, "");
         try {
             connection = DriverManager.getConnection(url + port + "/" + dbName, userName, password);
-            System.out.println("Database Connected!");
+            JOptionPane.showMessageDialog(null, "Database Connected!", "Information", JOptionPane.INFORMATION_MESSAGE);
             return true;
         } catch (SQLException ex) {
             if (ex.getMessage().contains("Communications link failure")) {
                 JOptionPane.showMessageDialog(null, "Connection failed!", "Warning", 0);
             } else {
-                JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+                if (ex.getMessage().contains("Access denied for user")) {
+                    JOptionPane.showMessageDialog(null, "Access denied for user, please check your admission details", "Warning", 0);
+                } else {
+                    JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
+                }
+                connection = null;
             }
             return false;
         }
@@ -342,7 +353,7 @@ public class MySql implements DAL {
         }
         return tableNameArray;
     }
-    
+
     public AbstractList<String> getColumnsOfTable(String tableName) {
         AbstractList<String> columnsNameArray = new ArrayList<String>();
         try {
@@ -361,27 +372,27 @@ public class MySql implements DAL {
         }
         return columnsNameArray;
     }
-    
-    public AbstractList<FDScenario> getFDs(String tableName){ 
-        AbstractList<FDScenario> listOfFDs = new ArrayList<FDScenario>(); 
-        AbstractList<FDScenario> combinations = columnHelper.getAllCombinations() ; 
-        for (int i=0;i<combinations.size();++i){ 
-            if(isFd(tableName,combinations.get(i).determinantColumns,combinations.get(i).dependentColumns )){
+
+    public AbstractList<FDScenario> getFDs(String tableName) {
+        AbstractList<FDScenario> listOfFDs = new ArrayList<FDScenario>();
+        AbstractList<FDScenario> combinations = columnHelper.getAllCombinations();
+        for (int i = 0; i < combinations.size(); ++i) {
+            if (isFd(tableName, combinations.get(i).determinantColumns, combinations.get(i).dependentColumns)) {
                 listOfFDs.add(combinations.get(i));
             }
         }
-        return listOfFDs; 
+        return listOfFDs;
     }
-    
+
     public AbstractList<FDScenario> getCFDs(String tableName) {
         AbstractList<FDScenario> listOfCFDs = new ArrayList<FDScenario>();
         AbstractList<String> columns = getColumnsOfTable(tableName);
         AbstractList<FDScenario> combinations = columnHelper.getAllCombinations();
-        
+
         for (int columnName = 0; columnName < columns.size(); ++columnName) {
             AbstractList<String> conditions = getConditions(tableName, columns.get(columnName));
             for (int condition = 0; condition < conditions.size(); ++condition) {
-                for (int i=0;i<combinations.size();++i){
+                for (int i = 0; i < combinations.size(); ++i) {
                     if (isCfd(tableName, combinations.get(i).determinantColumns, combinations.get(i).dependentColumns, conditions.get(condition))) {
                         listOfCFDs.add(combinations.get(i));
                     }
@@ -390,7 +401,7 @@ public class MySql implements DAL {
         }
         return listOfCFDs;
     }
-    
+
     public AbstractList<FDScenario> getAR(String tableName) {
         AbstractList<FDScenario> listOfAr = new ArrayList<FDScenario>();
         AbstractList<String> columns = getColumnsOfTable(tableName);

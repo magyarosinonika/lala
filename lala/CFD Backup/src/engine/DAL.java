@@ -29,5 +29,6 @@ public interface DAL {//javaDocs utana olvasni
     public AbstractList<FDScenario> getCFDs(String tableName);
     public AbstractList<FDScenario> getAR(String tableName);
     void prepareConnection();
+    public void setConnection(Connection conn);
     //void combinations(final AbstractList columns, int[] helpNumbers, final int k);
 }

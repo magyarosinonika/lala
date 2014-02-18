@@ -7,9 +7,7 @@ package UI;
 import java.awt.Component;
 import java.lang.reflect.InvocationTargetException;
 import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import UI.forms.*;
-import exceptionhandler.SetMessage;
+import exceptionhandler.ExceptionHandlerCaller;
 
 /**
  *
@@ -39,23 +37,22 @@ public class JFrameManager  {
         }
         catch (InstantiationException instantiationException)
         {
-            SetMessage.SetMessageError("Class object cannot be instantiated!");
-            //ExceptionHandler.handleException(instantiationException, parentComponent, Language.getMessage(Language.InstantiationExceptionKey), c.getName());
+            ExceptionHandlerCaller.handleInstantiationException(instantiationException, null,"???");
         }
         catch(NoSuchMethodException noSuchMethodException)
         {
-            SetMessage.SetMessageError("Method cannot be found!");
+            ExceptionHandlerCaller.handleNoSuchMethodException(noSuchMethodException, null,"???");
         }
         catch (IllegalAccessException illegalAccessException)
         {
-            SetMessage.SetMessageError("The currently executing method does not have access to the definition of the specified class, field, method or constructor!");
+            ExceptionHandlerCaller.handleIllegalAccessException(illegalAccessException, null,"???");
         }
         catch (InvocationTargetException invocationTargetException)
         {
-            SetMessage.SetMessageError("InvocationTargetException");
+            ExceptionHandlerCaller.handleInvocationTargetException(invocationTargetException, null,"???");
+            
         }
         catch(Exception exception){
-            //JOptionPane.showMessageDialog(null, exception.getMessage(),"ERROR",0);
             for(int i=0;i<exception.getStackTrace().length;++i){
                 System.out.println(exception.getStackTrace()[i]);
             }

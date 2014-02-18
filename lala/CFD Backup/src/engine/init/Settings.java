@@ -6,6 +6,7 @@ package engine.init;
 
 import engine.DAL;
 import engine.FileHandler;
+import exceptionhandler.ExceptionHandlerCaller;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -16,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 /**
@@ -82,7 +84,11 @@ public final class Settings {
 
             }
         } catch(FileNotFoundException fileNotFoundException) {
-            JOptionPane.showMessageDialog(null, "settings.ini was not found!" , "ERROR", 0);
+            //JOptionPane.showMessageDialog(null, "settings.ini was not found!" , "ERROR", 0);
+            // fileNotFoundException2 = (FileNotFoundException)ExceptionHandlerCaller.createJOptionPane(FileNotFoundExceptionHandler.class, "settings.ini", null);
+            ExceptionHandlerCaller.handleFileNotFoundException(fileNotFoundException, null,"settings.ini");
+        
+        
         } catch(IOException ioException) {
             JOptionPane.showMessageDialog(null, "There was an error while trying to read the content of settings.ini!" , "ERROR", 0);
         }

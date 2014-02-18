@@ -25,6 +25,7 @@ import javax.swing.JOptionPane;
 public class MainForm extends JFrame{
     
     final JFrame myframe = this;
+    
     public MainForm(String name){
         super(name);
         initComponents();
