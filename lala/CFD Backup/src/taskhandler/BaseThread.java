@@ -25,4 +25,8 @@ public class BaseThread implements Runnable {
         
     }
     
+    public void start() {
+        
+    }
+    
 }

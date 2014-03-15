@@ -8,6 +8,7 @@ import engine.init.DBMSManager;
 import engine.init.Settings;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import sun.reflect.ReflectionFactory.GetReflectionFactoryAction;
 
 /**
  *
@@ -25,36 +26,74 @@ public class Operator extends Thread {
         Operator.dataAccesLayer = dataAccesLayer;
     }
 
-    public static void learnDependencies() {
-        // A learnDependencies meg kell hívja ezt a metódust és egy lokális változóba be kell tegye a táblák nevének a halmazát.
-        //learnDependencies meg kell hívja minden táblára a getFDs-t, amelyik visszatérít egy FD halmazt. 
-        // System.out.println(isFd(getTable_name(), getDeterminant_columns_array(), getDependent_columns_array())) 
-        //String tableName=null;
+    public static void learnFDs() {
         AbstractList<FDScenario> FDs = new ArrayList<FDScenario>();
+        AbstractList<String> tableNames = DBMSManager.DALFactory(Settings.getRdbms()).getTableNames();
+        for (int i = 0; i < tableNames.size(); ++i) {
+            String currentTableName = tableNames.get(i);
+            AbstractList<String> columnNames = DBMSManager.DALFactory(Settings.getRdbms()).getColumnsOfTable(currentTableName);
+            FDs.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getFDs(currentTableName, columnNames)));
+            DBMSManager.DALFactory(Settings.getRdbms()).createDependency(FDs);
+        }
+    }
+
+    public static void learnCFDs() {
         AbstractList<FDScenario> CFDs = new ArrayList<FDScenario>();
+        AbstractList<String> tableNames = DBMSManager.DALFactory(Settings.getRdbms()).getTableNames();
+        for (int i = 0; i < tableNames.size(); ++i) {
+            String currentTableName = tableNames.get(i);
+            AbstractList<String> columnNames = DBMSManager.DALFactory(Settings.getRdbms()).getColumnsOfTable(currentTableName);
+            CFDs.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getCFDs(currentTableName, columnNames)));
+            DBMSManager.DALFactory(Settings.getRdbms()).createDependency(CFDs);
+        }
+    }
+
+    public static void learnARs() {
         AbstractList<FDScenario> AR = new ArrayList<FDScenario>();
         AbstractList<String> tableNames = DBMSManager.DALFactory(Settings.getRdbms()).getTableNames();
         for (int i = 0; i < tableNames.size(); ++i) {
             String currentTableName = tableNames.get(i);
             AbstractList<String> columnNames = DBMSManager.DALFactory(Settings.getRdbms()).getColumnsOfTable(currentTableName);
-           // AbstractList<String> conditions = DBMSManager.DALFactory(Settings.getRdbms()).getConditions(currentTableName, columnNames.get(i));
-            
-           //FDs.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getFDs(currentTableName, columnNames)));
-           CFDs.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getCFDs(currentTableName, columnNames)));
-           //AR.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getAR(currentTableName, columnNames)));
-           //System.out.println(DBMSManager.DALFactory(Settings.getRdbms()).getFDs(currentTableName, columnNames));
-           //System.out.println(DBMSManager.DALFactory(Settings.getRdbms()).getCFDs(currentTableName, columnNames));
-           //System.out.println(DBMSManager.DALFactory(Settings.getRdbms()).getAR(currentTableName, columnNames));
-            for(int k=0;k < FDs.size();++k){
-               System.out.println(FDs.get(k).determinantColumns);
-               System.out.println(FDs.get(k).dependentColumns);
-            }
-//           for(int k=0;k < CFDs.size();++k){
-//               System.out.println(CFDs.get(k).determinantColumns);
-//               System.out.println(CFDs.get(k).dependentColumns);
-//               System.out.println(CFDs.get(k).condition);
-//            }
-            
+            AR.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getAR(currentTableName, columnNames)));
+            DBMSManager.DALFactory(Settings.getRdbms()).createDependency(AR);
         }
+    }
+
+    public static void learnDependencies() {
+//        AbstractList<FDScenario> FDs = new ArrayList<FDScenario>();
+//        AbstractList<FDScenario> CFDs = new ArrayList<FDScenario>();
+//        AbstractList<FDScenario> AR = new ArrayList<FDScenario>();
+        AbstractList<String> tableNames = DBMSManager.DALFactory(Settings.getRdbms()).getTableNames();
+        for (int i = 0; i < tableNames.size(); ++i) {
+//            String currentTableName = tableNames.get(i);
+//            AbstractList<String> columnNames = DBMSManager.DALFactory(Settings.getRdbms()).getColumnsOfTable(currentTableName);
+//            // AbstractList<String> conditions = DBMSManager.DALFactory(Settings.getRdbms()).getConditions(currentTableName, columnNames.get(i));
+//            FDs.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getFDs(currentTableName, columnNames)));
+//            CFDs.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getCFDs(currentTableName, columnNames)));
+//            AR.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getAR(currentTableName, columnNames)));
+//            DBMSManager.DALFactory(Settings.getRdbms()).createDependency(FDs);
+//            DBMSManager.DALFactory(Settings.getRdbms()).createDependency(CFDs);
+//            DBMSManager.DALFactory(Settings.getRdbms()).createDependency(AR);
+            learnDependencies(tableNames.get(i));
+
+        }
+    }
+
+    public static void learnDependencies(String currentTableName) {
+        AbstractList<FDScenario> FDs = new ArrayList<FDScenario>();
+        AbstractList<FDScenario> CFDs = new ArrayList<FDScenario>();
+        AbstractList<FDScenario> AR = new ArrayList<FDScenario>();
+
+        //String currentTableName = tableNames.get(i);
+        AbstractList<String> columnNames = DBMSManager.DALFactory(Settings.getRdbms()).getColumnsOfTable(currentTableName);
+        // AbstractList<String> conditions = DBMSManager.DALFactory(Settings.getRdbms()).getConditions(currentTableName, columnNames.get(i));
+        FDs.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getFDs(currentTableName, columnNames)));
+        CFDs.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getCFDs(currentTableName, columnNames)));
+        AR.addAll((DBMSManager.DALFactory(Settings.getRdbms()).getAR(currentTableName, columnNames)));
+        DBMSManager.DALFactory(Settings.getRdbms()).createDependency(FDs);
+        DBMSManager.DALFactory(Settings.getRdbms()).createDependency(CFDs);
+        DBMSManager.DALFactory(Settings.getRdbms()).createDependency(AR);
+
+
     }
 }

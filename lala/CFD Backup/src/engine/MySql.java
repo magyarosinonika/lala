@@ -9,6 +9,7 @@ import UI.forms.SettingsForm;
 import com.mysql.jdbc.PreparedStatement;
 import engine.init.ColumnHelper;
 import engine.init.Combination;
+import engine.init.DBMSManager;
 import engine.init.Settings;
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -135,7 +136,7 @@ public class MySql implements DAL {
             query += "(t1." + dependentColumns.get(i) + " <> t2." + dependentColumns.get(i) + " )";
         }
         query += " ) ";
-        System.out.println(query);
+        //System.out.println(query);
         Statement statemetCFd = null;
         ResultSet cfd = null;
         try {
@@ -179,7 +180,7 @@ public class MySql implements DAL {
             query += "(t1." + dependentColumns.get(i) + " <> t2." + dependentColumns.get(i) + " )";
         }
         query += " ) ";
-        System.out.println(query);
+        //System.out.println(query);
         Statement statemetAR = null;
         ResultSet ar = null;
         try {
@@ -230,21 +231,6 @@ public class MySql implements DAL {
         //System.out.println("////////"+query); 
         //System.out.println("////"+condition_list.toString()); 
         return conditionList;// a conditionList ben vannak az osszetett stringek
-    }
-
-    @Override
-    public boolean checkConnection() {
-        Statement stmt = null;
-        ResultSet rs = null;
-        try {
-            //conn.isClosed();
-            stmt = getConnection().createStatement();
-            rs = stmt.executeQuery("select 1 from dual;");
-            return true; // connection is valid
-            //}
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     @Override
@@ -406,29 +392,68 @@ public class MySql implements DAL {
                     }
                 }
 
+                FDScenario currentFDscenario = new FDScenario(determinantColumns, dependentColumns);
+                try {
+                    if (isFd(tableName, determinantColumns, dependentColumns) && !ispPresentFD(currentFDscenario) ) {
+                        System.out.println("FD");
+                        listOfFDs.add(new FDScenario(determinantColumns, dependentColumns));
 
-                if (isFd(tableName, determinantColumns, dependentColumns)) {
-//                    if (listOfFDs.contains(new FDScenario(determinantColumns, dependentColumns))) {
-//                        System.out.println("Mar tartalmazza ezt a sort!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-//                    } else 
-                    listOfFDs.add(new FDScenario(determinantColumns, dependentColumns));
-
+                    }
+                } catch (SQLException ex) {
+                    Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
                 }
+
             }
         } while (currentScenario != null);
 
-//        System.out.println(listOfFDs.size());
-//        System.out.println("az fd-k listaja");
-//         for(int k=0; k<listOfFDs.size();++k){
-//            System.out.println("determinant: "+ listOfFDs.get(k).determinantColumns );
-//            System.out.println("dependent: "+listOfFDs.get(k).dependentColumns);  
-//            System.out.println();
-//            }
-
-
         return listOfFDs;
     }
+    
+    public boolean ispPresentFD(FDScenario currentFDscenario) throws SQLException {
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+        int result = 0;
+        boolean exists = false;
+        String sql = "select signature from "
+                + "(select condi, concat(concat(',', group_concat(concat(concat(concat(concat(columnName, '!^!'),"
+                + " isDeterminantColumn),'!^!'), value)  separator ',')), ',')"
+                + " as signature from dependency join dependencycolumn "
+                + "on dependency.id = dependencycolumn.dependencyId) SignatureTable where 1";
 
+        for (int index = 0; index < currentFDscenario.determinantColumns.size(); index++) {
+            sql += " and signature LIKE ? ";
+        }
+        for (int index = 0; index < currentFDscenario.dependentColumns.size(); index++) {
+            sql += " and signature  LIKE ? ";
+        }
+        try {
+            preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+
+            for (int index = 0; index < currentFDscenario.determinantColumns.size(); index++) {
+                preparedStatement.setString(index + 1, "%," + currentFDscenario.determinantColumns.get(index) + "!^!1!^!,%");
+                //String determin = "%," + currentFDscenario.determinantColumns.get(index) + "!^!1!^!,%";
+            }
+
+            for (int index = 0; index < currentFDscenario.dependentColumns.size(); index++) {
+                preparedStatement.setString(currentFDscenario.determinantColumns.size() + 1 + index, "%," + currentFDscenario.dependentColumns.get(index) + "!^!0!^!" + currentFDscenario.values.get(index) + ",%");
+                //preparedStatement.setString(currentFDscenario.determinantColumns.size() + 2 + index, "%," + currentFDscenario.dependentColumns.get(index) + "!^!0!^!" + 0 + ",%");
+            }
+
+
+            ResultSet rs = preparedStatement.executeQuery();
+            if (rs.next()) {
+                System.out.println("van ilyen sor");
+                exists = true;
+            }
+
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return exists;
+
+    }
+
+    @Override
     public AbstractList<FDScenario> getCFDs(String tableName, AbstractList<String> columnNames) {
         AbstractList<FDScenario> listOfCFDs = new ArrayList<FDScenario>();
         int[] currentScenario = null;
@@ -441,12 +466,6 @@ public class MySql implements DAL {
 
         for (int column = 0; column < columnsSize; ++column) {//annyi eleme van a tombnek ahany oszlop van
             columnsConditions[column].addAll(new ArrayList<String>(getConditions(tableName, columnNames.get(column))));
-        }
-        System.out.println("Kondiciok oszloponkent a parameterkent atadott tablabol:" + tableName);
-        for (int i = 0; i < columnsConditions.length; ++i) {
-            for (int j = 0; j < columnsConditions[i].size(); ++j) {
-                System.out.println(columnsConditions[i].get(j));
-            }
         }
 
         //felepitem az uj oszlopokat tartalmazo tombot kiveve a kondicio oszlopot
@@ -498,8 +517,14 @@ public class MySql implements DAL {
                         for (int column = 0; column < columnNameswithoutConditionColumn.size(); ++column) {
                             AbstractList<String> conditions = getConditions(tableName, columnNameswithoutConditionColumn.get(column));
                             for (int condition = 0; condition < conditions.size(); ++condition) {
-                                if (isCfd(tableName, determinantColumns, dependentColumns, conditions.get(condition))) {
-                                    listOfCFDs.add(new FDScenario(determinantColumns, dependentColumns, conditions.get(condition)));
+                                FDScenario currentFDscenario = new FDScenario(determinantColumns, dependentColumns, conditions.get(condition));
+                                try {
+                                    if (isCfd(tableName, determinantColumns, dependentColumns, conditions.get(condition)) && !ispPresentCFD(currentFDscenario)) {
+                                        System.out.println("CFD");
+                                        listOfCFDs.add(new FDScenario(determinantColumns, dependentColumns, conditions.get(condition)));
+                                    }
+                                } catch (SQLException ex) {
+                                    Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
                                 }
                             }
                         }
@@ -507,13 +532,55 @@ public class MySql implements DAL {
                 } while (currentScenario != null);
 
             }
-            for (int k = 0; k < listOfCFDs.size(); ++k) {
-                System.out.println("a cfd-k listaja: " + "determinant: " + listOfCFDs.get(k).determinantColumns + "dependent: " + listOfCFDs.get(k).dependentColumns + "kondicio " + listOfCFDs.get(k).condition);
+        }
+        return listOfCFDs;
+    }
+    
+    public boolean ispPresentCFD(FDScenario currentFDscenario) throws SQLException {
+        PreparedStatement preparedStatement = null;
+        boolean exists = false;
+        String sql = "select signature from "
+                + "(select condi, concat(concat(',', group_concat(concat(concat(concat(concat(columnName, '!^!'),"
+                + " isDeterminantColumn),'!^!'), IFNULL(value, ','))  separator ',')), ',')" //kijavitottam if null ra mert ha  a value null akkor nullt terit vissza
+                + " as signature from dependency join dependencycolumn "
+                + "on dependency.id = dependencycolumn.dependencyId"
+                + " where condi=?) SignatureTable where 1 ";
+
+        for (int index = 0; index < currentFDscenario.determinantColumns.size(); index++) {
+            sql += " and signature LIKE ? ";
+        }
+        for (int index = 0; index < currentFDscenario.dependentColumns.size(); index++) {
+            sql += " and signature  LIKE ? ";
+        }
+        try {
+            preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+            preparedStatement.setString(1, currentFDscenario.condition);
+            int paramMetaData = preparedStatement.getParameterMetaData().getParameterCount();
+
+            for (int index = 0; index < currentFDscenario.determinantColumns.size(); index++) {
+                preparedStatement.setString(index + 2, "%," + currentFDscenario.determinantColumns.get(index) + "!^!1!^!,%");
+            }
+
+            for (int index = 0; index < currentFDscenario.dependentColumns.size(); index++) {
+
+                preparedStatement.setString(currentFDscenario.determinantColumns.size() + 2 + index, "%," + currentFDscenario.dependentColumns.get(index) + "!^!0!^!" + currentFDscenario.values.get(index) + ",%");
             }
 
 
+            ResultSet rs = preparedStatement.executeQuery();
+            if (rs.next()) {
+                //System.out.println("van ilyen sor");
+                exists = true;
+                // curser has moved to first result of the ResultSet 
+                // thus here are matches with this query.
+            }
+
+
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return listOfCFDs;
+        return exists;
+
     }
 
     @Override
@@ -529,12 +596,6 @@ public class MySql implements DAL {
 
         for (int column = 0; column < columnsSize; ++column) {//annyi eleme van a tombnek ahany oszlop van
             columnsConditions[column].addAll(new ArrayList<String>(getConditions(tableName, columnNames.get(column))));
-        }
-        System.out.println("Kondiciok oszloponkent a parameterkent atadott tablabol:" + tableName);
-        for (int i = 0; i < columnsConditions.length; ++i) {
-            for (int j = 0; j < columnsConditions[i].size(); ++j) {
-                System.out.println(columnsConditions[i].get(j));
-            }
         }
 
         //felepitem az uj oszlopokat tartalmazo tombot kiveve a kondicio oszlopot
@@ -581,8 +642,19 @@ public class MySql implements DAL {
                         for (int column = 0; column < columnNameswithoutConditionColumn.size(); ++column) {
                             AbstractList<String> conditions = getConditions(tableName, columnNameswithoutConditionColumn.get(column));
                             for (int condition = 0; condition < conditions.size(); ++condition) {
-                                if (isAr(tableName, conditions.get(condition), dependentColumns)) {
-                                    listOfAr.add(new FDScenario(dependentColumns, conditions.get(condition)));
+//                                if (isAr(tableName, conditions.get(condition), dependentColumns)) {
+//                                    System.out.println("AR");
+//                                    listOfAr.add(new FDScenario(dependentColumns, conditions.get(condition)));
+//                                }
+                                
+                                FDScenario currentFDscenario = new FDScenario(dependentColumns, conditions.get(condition));
+                                try {
+                                    if (isAr(tableName, conditions.get(condition), dependentColumns) && !ispPresentAR(currentFDscenario)) {
+                                        listOfAr.add(new FDScenario(dependentColumns, conditions.get(condition)));
+                                        System.out.println("AR");
+                                    }
+                                } catch (SQLException ex) {
+                                    Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
                                 }
                             }
                         }
@@ -597,6 +669,40 @@ public class MySql implements DAL {
 
         return listOfAr;
     }
+    
+    public boolean ispPresentAR(FDScenario currentFDscenario) throws SQLException {
+        PreparedStatement preparedStatement = null;
+        boolean exists = false;
+        String sql = "select signature from "
+                + "(select condi, concat(concat(',', group_concat(concat(concat(concat(concat(columnName, '!^!'),"
+                + " isDeterminantColumn),'!^!'), value)  separator ',')), ',')"
+                + " as signature from dependency join dependencycolumn "
+                + "on dependency.id = dependencycolumn.dependencyId"
+                + " where condi=? ) SignatureTable where 1";
+
+        for (int index = 0; index < currentFDscenario.dependentColumns.size(); index++) {
+            sql += " and signature  LIKE ? ";
+        }
+        try {
+            preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+
+            preparedStatement.setString(1, currentFDscenario.condition);
+
+            for (int index = 0; index < currentFDscenario.dependentColumns.size(); index++) {
+                preparedStatement.setString(index + 2, "%," + currentFDscenario.dependentColumns.get(index) + "!^!0!^!,%");
+            }
+            ResultSet rs = preparedStatement.executeQuery();
+            if (rs.next()) {
+                //System.out.println("van ilyen ar sor");
+                exists = true;
+            }
+
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return exists;
+
+    }
 
     @Override
     public void createDependency(AbstractList<FDScenario> dependencies) {
@@ -607,7 +713,7 @@ public class MySql implements DAL {
 
             for (int k = 0; k < dependencies.size(); ++k) {
                 String sql = "INSERT INTO Dependency (condi, insertToken) VALUES(?,?); ";
-                preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+                preparedStatement = (PreparedStatement) getConnection().prepareStatement(sql);
 
 
                 //tobbszor fog szerepelni egy kondicio mert mas osszefuggesben is van veve,
@@ -624,7 +730,7 @@ public class MySql implements DAL {
                 //the ? will represent our token variable----->lehet kell fetch elni
 
                 sql = "select max(id) as maxId from Dependency where insertToken = ? ";
-                preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+                preparedStatement = (PreparedStatement) getConnection().prepareStatement(sql);
                 preparedStatement.setString(1, token);
                 ResultSet idMax = preparedStatement.executeQuery();
                 int myDependencyId = -1;
@@ -632,12 +738,9 @@ public class MySql implements DAL {
                     myDependencyId = idMax.getInt("maxId");
                 }
 
-
-                //int dependencyId = -1;
-
                 sql = "INSERT INTO dependencycolumn (dependencyId, columnName , isDeterminantColumn, value  ) VALUES(?,?,?,?); ";
 
-                preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+                preparedStatement = (PreparedStatement) getConnection().prepareStatement(sql);
 
 
                 if ((currentDependency.determinantColumns != null) && (!currentDependency.determinantColumns.isEmpty())) {
@@ -661,14 +764,298 @@ public class MySql implements DAL {
 
                 //TODO update the insert token of the currently inserted dependency to null
 
-                sql = "update Dependency set insertToken = null where id = ?";
-                preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
-                preparedStatement.setInt(1, myDependencyId);
-                preparedStatement.executeUpdate();
+//                sql = "update Dependency set insertToken = null where id = ?";
+//                preparedStatement = (PreparedStatement) connection.prepareStatement(sql);
+//                preparedStatement.setInt(1, myDependencyId);
+//                preparedStatement.executeUpdate();
 
             }
         } catch (SQLException e) {
             System.out.println("Could not insert data to the database " + e.getStackTrace());
         }
+    }
+    
+    
+    public AbstractList<FDScenario> getListOfMU(AbstractList<FDScenario> list) {
+        AbstractList<FDScenario> listOfMu = new ArrayList<FDScenario>();
+        for (int i = 0; i < list.size(); ++i) {
+            if (list.get(i).condition == null && !list.get(i).determinantColumns.isEmpty()) { //if is an fd
+                FDScenario currentFDscenario1 = new FDScenario(list.get(i).determinantColumns, list.get(i).dependentColumns);
+                for (int j = i + 1; j < list.size(); ++j) {
+                    FDScenario currentFDscenario2 = new FDScenario(list.get(j).determinantColumns, list.get(j).dependentColumns);
+                    if ((currentFDscenario1.dependentColumns.toString().matches(".*" + currentFDscenario2.dependentColumns.toString() + ".*")) && (currentFDscenario2.determinantColumns.toString().matches(".*" + currentFDscenario1.determinantColumns.toString() + ".*"))) {
+                        System.out.println("mu");
+                        listOfMu.add(currentFDscenario1);
+                    }
+                }
+            } else if (list.get(i).condition != null && !list.get(i).determinantColumns.isEmpty()) {//is a cfd
+                FDScenario currentFDscenario1 = new FDScenario(list.get(i).determinantColumns, list.get(i).dependentColumns, list.get(i).condition);
+                for (int k = i + 1; k < list.size(); ++k) {
+                    FDScenario currentFDscenario2 = new FDScenario(list.get(k).determinantColumns, list.get(k).dependentColumns, list.get(k).condition);
+                    if (currentFDscenario1.dependentColumns.toString().matches(".*" + currentFDscenario2.dependentColumns.toString() + ".*") && (currentFDscenario2.determinantColumns.toString().matches(".*" + currentFDscenario1.determinantColumns.toString() + ".*")) && (currentFDscenario2.condition.matches(".*" + currentFDscenario1.condition + ".*"))) {
+                        listOfMu.add(currentFDscenario1);
+                    }
+                }
+            }
+
+        }
+        return listOfMu;
+    }
+
+    @Override
+    public void getListOfMuSql() throws SQLException {
+        AbstractList<String> listOfMu = new ArrayList<String>();
+
+        String sql = "select result.id "
+                + "from dependency result "
+                + "where  result.status = '0'  and result.id not in"
+                + "(select d1.id "
+                + "from dependency d1 ,  dependency d2 "
+                + "where d1.status = '0' "
+                + "and d2.status = '0' "
+                + "and ((d2.condi is null) or (d2.condi = d1.condi) )"
+                + "and   (select count(*) "
+                + "from dependencycolumn d1col, dependencycolumn d2col "
+                + "where 0 = d2col.isdeterminantcolumn "
+                + "and d1col.columnName = d2col.columnName "
+                + "and ((d2col.value is null) or (IFNULL(d1col.value, '') = IFNULL(d2col.value, ''))) "
+                + "and d1col.isdeterminantcolumn = 0 "
+                + "and d1col.dependencyId = d1.id "
+                + "and d2col.dependencyId = d2.id )"
+                + "="
+                + "(select count(*) "
+                + "from dependencycolumn "
+                + "where dependencycolumn.dependencyId = d1.id "
+                + "and  dependencycolumn.isdeterminantcolumn = 0)"
+                + "and (select count(*) "
+                + "from dependencycolumn d1col, dependencycolumn d2col "
+                + "where 1 = d2col.isdeterminantcolumn "
+                + "and d1col.columnName = d2col.columnName "
+                + "and d1col.isdeterminantcolumn = 1 "
+                + "and d1col.dependencyId = d1.id "
+                + "and d2col.dependencyId = d2.id ) "
+                + "="
+                + "(select count(*)"
+                + "from dependencycolumn "
+                + "where dependencycolumn.dependencyId = d2.id "
+                + "and dependencycolumn.isdeterminantcolumn = 1) "
+                + "and d1.id <> d2.id)";
+
+        Statement stmt_conditions = null;
+        ResultSet conditions = null;
+        try {
+            stmt_conditions = getConnection().createStatement();
+            conditions = null;
+            conditions = stmt_conditions.executeQuery(sql);
+            while (conditions.next()) {
+                listOfMu.add(conditions.getString(1));
+                //conditionList.add(column + "='" + conditions.getString(1) + "'");
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        for (int i = 0; i < listOfMu.size(); ++i) {
+            System.out.println(listOfMu.get(i));
+        }
+    }
+
+    public AbstractList<Integer> getListOfMuSqlFromSelectedTables() throws SQLException {
+        AbstractList<Integer> listOfMu = new ArrayList<Integer>();
+
+        String sql = "select result.id "
+                + "from dependencySelected result "
+                + "where  result.status = '0'  and result.id not in"
+                + "(select d1.id "
+                + "from dependencySelected d1 ,  dependencySelected d2 "
+                + "where d1.status = '0' "
+                + "and d2.status = '0' "
+                + "and ((d2.condi is null) or (d2.condi = d1.condi) )"
+                + "and   (select count(*) "
+                + "from dependencycolumnselected d1col, dependencycolumnselected d2col "
+                + "where 0 = d2col.isdeterminantcolumn "
+                + "and d1col.columnName = d2col.columnName "
+                + "and ((d2col.value is null) or (IFNULL(d1col.value, '') = IFNULL(d2col.value, ''))) "
+                + "and d1col.isdeterminantcolumn = 0 "
+                + "and d1col.dependencyId = d1.id "
+                + "and d2col.dependencyId = d2.id )"
+                + "="
+                + "(select count(*) "
+                + "from dependencycolumnselected "
+                + "where dependencycolumnselected.dependencyId = d1.id "
+                + "and  dependencycolumnselected.isdeterminantcolumn = 0)"
+                + "and (select count(*) "
+                + "from dependencycolumnselected d1col, dependencycolumnselected d2col "
+                + "where 1 = d2col.isdeterminantcolumn "
+                + "and d1col.columnName = d2col.columnName "
+                + "and d1col.isdeterminantcolumn = 1 "
+                + "and d1col.dependencyId = d1.id "
+                + "and d2col.dependencyId = d2.id ) "
+                + "="
+                + "(select count(*)"
+                + "from dependencycolumnselected "
+                + "where dependencycolumnselected.dependencyId = d2.id "
+                + "and dependencycolumnselected.isdeterminantcolumn = 1) "
+                + "and d1.id <> d2.id)";
+
+        Statement stmt_conditions = null;
+        ResultSet conditions = null;
+        try {
+            stmt_conditions = getConnection().createStatement();
+            conditions = null;
+            conditions = stmt_conditions.executeQuery(sql);
+            while (conditions.next()) {
+                listOfMu.add(conditions.getInt(1));
+                //conditionList.add(column + "='" + conditions.getString(1) + "'");
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        for (int i = 0; i < listOfMu.size(); ++i) {
+            System.out.println(listOfMu.get(i));
+        }
+        return listOfMu;
+    }
+
+    public void reject(ArrayList<Integer> idToReject) throws SQLException {
+
+        PreparedStatement preparedStatement = null;
+        String sql = "update dependency set status = 2 where dependency.id = ?  ";
+
+        try {
+            preparedStatement = (PreparedStatement) getConnection().prepareStatement(sql);
+            for (int i = 0; i < idToReject.size(); ++i) {
+                preparedStatement.setInt(1, idToReject.get(i).intValue());
+                preparedStatement.executeUpdate();
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void accept(ArrayList<Integer> idToAccept) throws SQLException {
+        ArrayList<Integer> realIdToAccept = new ArrayList<Integer>();
+        ArrayList<Integer> listToReject = new ArrayList<Integer>();
+
+        PreparedStatement preparedStatement = null;
+       
+        String sql = "insert into dependencySelected (id, condi ,status, insertToken)"
+                + "SELECT distinct dependency.id,dependency.condi,dependency.status, dependency.insertToken  "
+                + "FROM dependency "
+                + "WHERE NOT EXISTS"
+                +   "(select 1 from dependencySelected as d  where d.id = dependency.id ) ";
+         
+         
+         for(int i=0;i<idToAccept.size();++i){
+             if(i==0){
+                 sql+="where id = ? ";
+             }
+             else
+             sql+= "or id = ? ";
+         }
+         try{         
+             preparedStatement =  (PreparedStatement) getConnection().prepareStatement(sql);
+             for(int i=0;i<idToAccept.size();++i){
+             preparedStatement.setInt(i+1, idToAccept.get(i).intValue());
+            
+             }
+              preparedStatement.executeUpdate();
+         }
+         catch(SQLException e) {
+            e.printStackTrace();
+         }
+//         //kell egy ilyan hogy meg nem letezik az az idju elem!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+          sql = "insert into dependencycolumnSelected (id, dependencyId ,columnName, isDeterminantColumn, value )" +
+                 "SELECT dependencycolumn.id,dependencycolumn.dependencyId,dependencycolumn.columnName, dependencycolumn.isDeterminantColumn ,dependencycolumn.value  "+
+                 "FROM dependencycolumn "
+               + "WHERE NOT EXISTS"
+               + "(select 1 from dependencycolumnSelected as d  where d.id = dependencycolumn.id ) ";
+
+         for(int i=0;i<idToAccept.size();++i){
+             if(i==0){
+                 sql+="where dependencyId = ? ";
+             }
+             else
+             sql+= "or dependencyId = ? ";
+         }
+         try{         
+             preparedStatement =  (PreparedStatement) getConnection().prepareStatement(sql);
+             for(int i=0;i<idToAccept.size();++i){
+             preparedStatement.setInt(i+1, idToAccept.get(i).intValue());
+            
+             }
+              preparedStatement.executeUpdate();
+         }
+         catch(SQLException e) {
+            e.printStackTrace();
+         }
+//         
+        AbstractList<Integer> muFromIdToAcceptList = new ArrayList<Integer>();
+        muFromIdToAcceptList = getListOfMuSqlFromSelectedTables();//megkapom a leghasznosabbakat a kivalasztotakbol
+
+        for (int i = 0; i < idToAccept.size(); ++i) {
+            if (!muFromIdToAcceptList.contains(idToAccept.get(i))) {
+                //ha nem tartalmazza akkor kell rejectelni
+                listToReject.add(idToAccept.get(i));//meglesza lista amit kell rejectelni
+            } else {
+                realIdToAccept.add(idToAccept.get(i));
+            }
+        }
+
+        reject(listToReject);
+//        sql = "update dependency set status = 2 where dependency.id = ?  ";
+//
+//        try {
+//            preparedStatement = (PreparedStatement) getConnection().prepareStatement(sql);
+//            for (int i = 0; i < listToReject.size(); ++i) {
+//                int temp = listToReject.get(i);
+//                preparedStatement.setInt(1, listToReject.get(i));//??string--int
+//                preparedStatement.executeUpdate();
+//            }
+//
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+
+        sql = "update dependency set status = 1 where dependency.id = ?  ";
+        try {
+            preparedStatement = (PreparedStatement) getConnection().prepareStatement(sql);
+            for (int i = 0; i < realIdToAccept.size(); ++i) {
+                int temp = realIdToAccept.get(i);
+                preparedStatement.setInt(1, realIdToAccept.get(i));
+                preparedStatement.executeUpdate();
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    @Override
+    public ResultSet readDependencies(int status) {
+
+        PreparedStatement preparedStatement = null;
+
+
+        String query = "select id,condi,signature "
+                + "from (select dependency.id,condi,concat(concat(',', group_concat(concat(concat(concat(concat(columnName, '!^!'),"
+                + " isDeterminantColumn),'!^!')) separator ',')), ',') as signature "
+                + "from dependency join dependencycolumn on dependency.id = dependencycolumn.dependencyId "
+                + "where status=? group by id) SignatureTable";
+        try {
+            preparedStatement = (PreparedStatement) DBMSManager.DALFactory(Settings.getRdbms()).getConnection().prepareStatement(query);
+            preparedStatement.setInt(1, status);
+            return preparedStatement.executeQuery();
+
+        } catch (SQLException ex) {
+            Logger.getLogger(MySql.class.getName()).log(Level.SEVERE, null, ex);
+
+        }
+        return null;
     }
 }

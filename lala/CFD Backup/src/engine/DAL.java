@@ -5,7 +5,10 @@
 package engine;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.AbstractList;
+import java.util.ArrayList;
 
 /**
  *
@@ -22,7 +25,6 @@ public interface DAL {//javaDocs utana olvasni
     void update();
     void delete();
     void generate();
-    boolean checkConnection();
     Connection getConnection();
     public AbstractList<String>getTableNames();
     public AbstractList<FDScenario> getFDs(String tableName, AbstractList<String> columnNames) ;
@@ -33,4 +35,8 @@ public interface DAL {//javaDocs utana olvasni
     public void createDependency(AbstractList<FDScenario> dependencies);
     public AbstractList<String> getColumnsOfTable(String tableName);
     //void combinations(final AbstractList columns, int[] helpNumbers, final int k);
+    public ResultSet readDependencies(int status);
+    public void getListOfMuSql() throws SQLException;
+    public void reject(ArrayList<Integer> idToReject) throws SQLException ;
+    public void accept(ArrayList<Integer> idToAccept) throws SQLException ;
 }
