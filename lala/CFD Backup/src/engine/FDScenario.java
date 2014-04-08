@@ -16,25 +16,28 @@ public class FDScenario {
     public AbstractList<String> dependentColumns;
     public AbstractList<String> values;
     public String condition;
+    public int id;
+    public String tableName;
 
-    public FDScenario(AbstractList<String> determinantColumns, AbstractList<String> dependentColumns) {
+    public FDScenario(AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String tableName) {
         //this.determinantColumns = determinantColumns; 
         //this.dependentColumns = dependentColumns; 
-        this(determinantColumns, dependentColumns, null);
+        this(determinantColumns, dependentColumns, null,tableName);
 
     }
 
-    public FDScenario(AbstractList<String> dependentColumns, String condition) {
+    public FDScenario(AbstractList<String> dependentColumns, String condition,String tableName) {
         //this.determinantColumns = determinantColumns; 
         //this.dependentColumns = dependentColumns; 
-        this(null, dependentColumns, condition);
+        this(null, dependentColumns, condition,tableName);
 
     }
 
-    public FDScenario(AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition) {
+    public FDScenario(AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition,String tableName) {
         this.determinantColumns = determinantColumns;
         this.dependentColumns = dependentColumns;
         this.condition = condition;
+        this.tableName = tableName;
         this.values = new java.util.ArrayList<String>();
         for (int valueIndex = 0; valueIndex < dependentColumns.size(); valueIndex++) {
             values.add("");
@@ -48,4 +51,13 @@ public class FDScenario {
         this.condition = condition;
         this.values = values;
     }
+    
+    public FDScenario(int id,AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition) {
+        this.id = id;
+        this.determinantColumns = determinantColumns;
+        this.dependentColumns = dependentColumns;
+        this.condition = condition;
+        
+    }
+    
 }

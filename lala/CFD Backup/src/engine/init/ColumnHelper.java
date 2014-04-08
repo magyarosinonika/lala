@@ -89,26 +89,11 @@ public class ColumnHelper {
             }
             if (ok) {
                 dependentColumnsArray.clear();
-                //System.out.println("Meghatarozott:" + Arrays.toString(result));
                 for (int j = 0; j < result.length; ++j) {
-                    //System.out.print(columns.get(result[j] - 1) + " ");
                     dependentColumnsArray.add(columns.get(result[j] - 1).toString());
                 }
                 //FDScenario fd = new FDScenario(determinantColumnsArray, dependentColumnsArray);
-                allCombinations.add(new FDScenario(determinantColumnsArray, dependentColumnsArray));
-                System.out.println("kombinacio :");
-                for(int i=0;i<determinantColumnsArray.size();++i){
-                    System.out.println("meghatarozo:"+determinantColumnsArray.get(i));
-                }
-                for(int i=0;i<dependentColumnsArray.size();++i){
-                    System.out.println("meghatarozott:"+dependentColumnsArray.get(i));
-                }
-//                if (isFd(table_name, determinant_columns_array, dependent_columns_array)) {
-//                    System.out.println("Is FD");
-//                } else {
-//                    System.out.println("is not Fd");
-                //}
-                System.out.println();
+                allCombinations.add(new FDScenario(determinantColumnsArray, dependentColumnsArray,tableName));
 
             }
             result = getNext(result, columns.size(), k);
@@ -164,12 +149,9 @@ public class ColumnHelper {
         boolean done = false;
         while (!done) {
             determinantColumnsArray.clear();
-            //System.out.println("Meghatarozo:" + Arrays.toString(result));
             for (int j = 0; j < result.length; j++) {
-                System.out.print(columns.get(result[j] - 1) + " ");
                 determinantColumnsArray.add(columns.get(result[j] - 1).toString());
             }
-            System.out.println();
 
             for (int i = 1; i < columnsArray.size(); i++) {
                 combinations(columnsArray, i, result);
@@ -178,7 +160,6 @@ public class ColumnHelper {
             result = getNext(result, columns.size(), k);
             done = stop;
         }
-         // }else System.out.println("not correct table");
     }
     
     

@@ -44,6 +44,10 @@ public class SettingsForm extends JFrame {
     private JTextField txtMaxThreadNumber;
     private JTabbedPane tabbedPane;
     private AbstractList<Checkbox> tabelsBox;
+    private boolean needResetConnection = false;
+    private JPanel tabelPanel;
+    private AbstractList<String> tableNameArray;
+    private JPanel panelInformation;
 
     public SettingsForm(String name) {
         super(name);
@@ -69,7 +73,7 @@ public class SettingsForm extends JFrame {
     }
 
     public void createTabs() {
-        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane = new JTabbedPane();
         tabbedPane.addTab("Settings for connection", createConnectionPanel());
         tabbedPane.addTab("General settings", createGeneralPanel());
         tabbedPane.addTab("Choose tables", createTabelsPanel());
@@ -81,19 +85,22 @@ public class SettingsForm extends JFrame {
             return new JPanel();
         }
         tabelsBox = new ArrayList<Checkbox>();
-        JPanel tabelPanel = new JPanel();
+        tabelPanel = new JPanel();
         tabelPanel.setLayout(new BorderLayout());
-        JPanel panelInformation = new JPanel();
-        AbstractList<String> tableNameArray = new ArrayList<String>();
+        panelInformation = new JPanel();
+        tableNameArray = new ArrayList<String>();
         tableNameArray = DBMSManager.DALFactory(Settings.getRdbms()).getTableNames();
         panelInformation.setLayout(new GridLayout(tableNameArray.size(), 1));
         int k = 0;
         for (int i = 0; i < tableNameArray.size(); ++i) {
-            if (Settings.getTabels().contains(tableNameArray.get(i))) {
-                addToTables(tableNameArray.get(i), true);
-            } else {
-                addToTables(tableNameArray.get(i), false);
-            }
+            //if (!( (tableNameArray.get(i).equals("dependency")) || (tableNameArray.get(i).equals("dependencycolumn"))) ){
+                if (Settings.getTabels().contains(tableNameArray.get(i))) {
+                    addToTables(tableNameArray.get(i), true);
+                } else {
+                    addToTables(tableNameArray.get(i), false);
+                }
+            //}
+
         }
         for (int i = 0; i < tabelsBox.size(); ++i) {
             panelInformation.add(tabelsBox.get(i));
@@ -109,6 +116,12 @@ public class SettingsForm extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
+                if ((!Settings.getUserName().equals(txtUserName.getText())) || (!Settings.getDbName().equals(txtDbName.getText()))
+                        || (!Settings.getHost().equals(txtHost.getText())) || (!Settings.getPassword().equals(new String(txtPassword.getPassword())))
+                        || (Settings.getPort() != Integer.parseInt(txtPort.getText())) || (!Settings.getRdbms().equals(cbRDBMS.getSelectedItem() + ""))) {
+                    needResetConnection = true;
+
+                }
                 Settings.setUserName(txtUserName.getText());
                 Settings.setDbName(txtDbName.getText());
                 Settings.setHost(txtHost.getText());
@@ -127,11 +140,42 @@ public class SettingsForm extends JFrame {
                     Settings.setTabels(tableElements);
                 }
                 Settings.save();
+                if (needResetConnection) {
+                    DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").setConnection(null);
+                    DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").connect("jdbc:mysql://" + txtHost.getText() + ":", txtUserName.getText(), new String(txtPassword.getPassword()), Integer.parseInt(txtPort.getText()), txtDbName.getText());
+                    refreshTablePanel();
+                    Settings.save();
+                    needResetConnection = false;
+                }
+                //Settings.save();
                 SetMessage.SetMessageInformation("Save!");
 
             }
         });
         return tabelPanel;
+    }
+
+    public void refreshTablePanel() {
+        panelInformation.removeAll();
+        tableNameArray.clear();
+        tabelsBox.clear();
+        tableNameArray = DBMSManager.DALFactory(Settings.getRdbms()).getTableNames();
+        Settings.setTabels(tableNameArray);
+
+        panelInformation.setLayout(new GridLayout(tableNameArray.size(), 1));
+        int k = 0;
+        for (int i = 0; i < tableNameArray.size(); ++i) {
+            //if (!( (tableNameArray.get(i).equals("dependency")) || (tableNameArray.get(i).equals("dependencycolumn"))) ){
+                if (Settings.getTabels().contains(tableNameArray.get(i))) {
+                    addToTables(tableNameArray.get(i), true);
+                } else {
+                    addToTables(tableNameArray.get(i), false);
+                }
+            //}
+        }
+        for (int i = 0; i < tabelsBox.size(); ++i) {
+            panelInformation.add(tabelsBox.get(i));
+        }
     }
 
     public JPanel createGeneralPanel() {
@@ -147,7 +191,12 @@ public class SettingsForm extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(SettingsHandler.checkGeneralSettings(txtMaxOccurenceNumber.getText(), txtMaxThreadNumber.getText())){
+                if (SettingsHandler.checkGeneralSettings(txtMaxOccurenceNumber.getText(), txtMaxThreadNumber.getText())) {
+                    if ((!Settings.getUserName().equals(txtUserName.getText())) || (!Settings.getDbName().equals(txtDbName.getText()))
+                            || (!Settings.getHost().equals(txtHost.getText())) || (!Settings.getPassword().equals(new String(txtPassword.getPassword())))
+                            || (Settings.getPort() != Integer.parseInt(txtPort.getText())) || (!Settings.getRdbms().equals(cbRDBMS.getSelectedItem() + ""))) {
+                        needResetConnection = true;
+                    }
                     Settings.setUserName(txtUserName.getText());
                     Settings.setDbName(txtDbName.getText());
                     Settings.setHost(txtHost.getText());
@@ -165,6 +214,15 @@ public class SettingsForm extends JFrame {
                     }
 
                     Settings.save();
+                    if (needResetConnection) {
+                        DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").setConnection(null);
+                        DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").connect("jdbc:mysql://" + txtHost.getText() + ":", txtUserName.getText(), new String(txtPassword.getPassword()), Integer.parseInt(txtPort.getText()), txtDbName.getText());
+
+                        refreshTablePanel();
+                        Settings.save();
+                        needResetConnection = false;
+                    }
+                    //Settings.save();
                     SetMessage.SetMessageInformation("Save!");
 
                 }
@@ -195,14 +253,6 @@ public class SettingsForm extends JFrame {
                     DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").connect("jdbc:mysql://" + txtHost.getText() + ":", txtUserName.getText(), new String(txtPassword.getPassword()), Integer.parseInt(txtPort.getText()), txtDbName.getText());
                     DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").setConnection(null);
                 }
-
-
-//                if (DBMSManager.DALFactory(Settings.getRdbms()).getConnection() == null) {
-//                    SetMessage.SetMessageInformation("Faild!");
-//                } else {
-//                    SetMessage.SetMessageInformation("Ok!");
-//                    DBMSManager.DALFactory(Settings.getRdbms()).setConnection(null);
-//                }
             }
         });
 
@@ -211,6 +261,11 @@ public class SettingsForm extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (SettingsHandler.checkConnectionSettings(txtUserName.getText(), new String(txtPassword.getPassword()), new String(txtPassword2.getPassword()), txtHost.getText(), txtPort.getText(), txtDbName.getText())) {
+                    if ((!Settings.getUserName().equals(txtUserName.getText())) || (!Settings.getDbName().equals(txtDbName.getText()))
+                            || (!Settings.getHost().equals(txtHost.getText())) || (!Settings.getPassword().equals(new String(txtPassword.getPassword())))
+                            || (Settings.getPort() != Integer.parseInt(txtPort.getText())) || (!Settings.getRdbms().equals(cbRDBMS.getSelectedItem() + ""))) {
+                        needResetConnection = true;
+                    }
                     Settings.setUserName(txtUserName.getText());
                     Settings.setDbName(txtDbName.getText());
                     Settings.setHost(txtHost.getText());
@@ -228,6 +283,15 @@ public class SettingsForm extends JFrame {
                     }
 
                     Settings.save();
+                    if (needResetConnection) {
+                        DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").setConnection(null);
+                        DBMSManager.DALFactory(cbRDBMS.getSelectedItem() + "").connect("jdbc:mysql://" + txtHost.getText() + ":", txtUserName.getText(), new String(txtPassword.getPassword()), Integer.parseInt(txtPort.getText()), txtDbName.getText());
+                        refreshTablePanel();
+                        Settings.save();
+                        needResetConnection = false;
+
+                    }
+                    //Settings.save();
                     SetMessage.SetMessageInformation("Save!");
                 }
             }

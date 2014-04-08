@@ -9,6 +9,7 @@ import java.lang.reflect.InvocationTargetException;
 import javax.swing.JFrame;
 import exceptionhandler.ExceptionHandlerCaller;
 import java.awt.Dimension;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -25,8 +26,6 @@ public class JFrameManager {
             } else {
                 frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             }
-            //frame.setLocationRelativeTo(parentComponent);
-
             Dimension screenSize = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
             Dimension windowSize = new Dimension(800, 500);
             frame.setSize((int) windowSize.getWidth(), (int) windowSize.getHeight());
@@ -45,7 +44,7 @@ public class JFrameManager {
 
         } catch (Exception exception) {
             for (int i = 0; i < exception.getStackTrace().length; ++i) {
-                System.out.println(exception.getStackTrace()[i]);
+                JOptionPane.showMessageDialog(null, exception.getStackTrace()[i]);
             }
         } finally {
             return frame;

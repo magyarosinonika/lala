@@ -65,7 +65,7 @@ public class Combination {
         //We need this variable for later checks
         int currentScenarioIndex = -1;
         //Apparently infinite loop, but in fact we will have a return value in any case
-        while (currentScenario[0] < caseNumber)//az a lenyeg hogy ez igaz legyen
+        while ( ( currentScenario.length > 0 ) && (currentScenario[0] < caseNumber) )//az a lenyeg hogy ez igaz legyen
         {
             //We cannot stop before we start ;)
             boolean stopIteration = false;

@@ -10,7 +10,7 @@ import engine.init.Settings;
  *
  * @author noni
  */
-public class SettingsReader extends BaseThread {
+public class SettingsReader extends BaseRunnable {
     
     public void run() {
         Settings.initializeSettings();

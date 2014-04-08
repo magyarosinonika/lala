@@ -15,12 +15,6 @@ import javax.swing.JOptionPane;
 public class SettingsHandler {
 
     public static boolean checkConnectionSettings(String userName, String password1, String password2, String host, String port, String dbName) {
-        System.out.println("username: " + userName
-                + " ,password1: " + password1
-                + " ,password2: " + password2
-                + " ,host: " + host
-                + " ,port: " + port
-                + ", dbname: " + dbName);
 
         if (userName.equalsIgnoreCase("")) {
             JOptionPane.showMessageDialog(null, "Please enter your User name!", "Warning", 0);

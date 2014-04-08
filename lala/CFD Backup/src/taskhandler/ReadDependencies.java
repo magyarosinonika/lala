@@ -7,13 +7,16 @@ package taskhandler;
 import UI.forms.DependenciesForm;
 import engine.init.DBMSManager;
 import engine.init.Settings;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.table.DefaultTableModel;
 
 /**
  *
  * @author Admin
  */
-public class ReadDependencies extends BaseThread{
+public class ReadDependencies extends BaseRunnable{
     
     protected int status;
     protected DefaultTableModel model;
@@ -23,11 +26,13 @@ public class ReadDependencies extends BaseThread{
         this.model = model;
     }
     
-    
-    
     @Override
     public void run() {
-        DependenciesForm.readCorrelations(status, model);
+        try {
+            DependenciesForm.readDependencies(status, model);
+        } catch (SQLException ex) {
+            Logger.getLogger(ReadDependencies.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
 }

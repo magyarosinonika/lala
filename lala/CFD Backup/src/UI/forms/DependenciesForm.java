@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -54,6 +55,7 @@ public class DependenciesForm extends JFrame {
     private JTable tableReject;
     private DefaultTableModel model;
     private JTable table;
+    public static JLabel currentLabel;
 
     public DependenciesForm(String name) {
         super(name);
@@ -61,7 +63,6 @@ public class DependenciesForm extends JFrame {
     }
 
     public void initComponents() {
-
         createTabs();
     }
 
@@ -78,11 +79,10 @@ public class DependenciesForm extends JFrame {
         dependenciesPanel.setLayout(new BorderLayout());
         model = new DefaultTableModel();
         model.setColumnIdentifiers(new String[]{"Id", "Condition", "Determinant", "Dependent"});
-//        readCorrelations(0, model);
         try {
             new taskhandler.ReadDependencies(0, model);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            JOptionPane.showMessageDialog(null, e.getMessage());
         }
         table = new JTable(model) {
 
@@ -107,7 +107,7 @@ public class DependenciesForm extends JFrame {
 //        tca.adjustColumns();
 
         JPanel buttonsPanel = new JPanel();
-        buttonsPanel.setLayout(new GridLayout(1, 3));
+        buttonsPanel.setLayout(new GridLayout(1, 4));
         JButton acceptButton = new JButton();
         acceptButton.setText("Accept");
         buttonsPanel.add(acceptButton);
@@ -115,6 +115,21 @@ public class DependenciesForm extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
+                
+                
+                int[] rows = table.getSelectedRows();
+                ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
+                for (int i = 0; i < rows.length; i++) {
+                    Integer temp = Integer.valueOf((String) model.getValueAt(rows[i] - i, 0));
+                    selectedRowsIds.add( temp );
+                }
+                try {
+                    DBMSManager.DALFactory(Settings.getRdbms()).accept(selectedRowsIds);
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(null, ex.getMessage());
+                }
+                
+                
                 refresh(0, model, table);
                 refresh(1, modelAccept, tableAccept);
             }
@@ -124,20 +139,43 @@ public class DependenciesForm extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
+                
+                int[] rows = table.getSelectedRows();
+                ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
+                for (int i = 0; i < rows.length; i++) {
+                    
+                    Integer temp = Integer.valueOf((String) model.getValueAt(rows[i] - i, 0));
+                    selectedRowsIds.add( temp );
+                }
+                try {
+                    DBMSManager.DALFactory(Settings.getRdbms()).reject(selectedRowsIds);
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(null, ex.getMessage());
+                }
+                
                 refresh(0, model, table);
                 refresh(2, modelReject, tableReject);
             }
         });
         buttonsPanel.add(rejectButton);
-        JButton refreshButton = new JButton("Refresh");
+        JButton refreshButton = new JButton("Refresh & Learn");
         refreshButton.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
                 refresh(0, model, table);
+                try {
+                    new taskhandler.LearnAllDependencies();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, ex.getMessage());
+                }
             }
         });
         buttonsPanel.add(refreshButton);
+
+        currentLabel = new JLabel();
+        buttonsPanel.add(currentLabel);
+
         dependenciesPanel.add(buttonsPanel, BorderLayout.SOUTH);
         return dependenciesPanel;
     }
@@ -147,11 +185,10 @@ public class DependenciesForm extends JFrame {
         acceptDependenciesPanel.setLayout(new BorderLayout());
         modelAccept = new DefaultTableModel();
         modelAccept.setColumnIdentifiers(new String[]{"Id", "Condition", "Determinant", "Dependent"});
-//        readCorrelations(1, modelAccept);
         try {
             new taskhandler.ReadDependencies(1, modelAccept);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            JOptionPane.showMessageDialog(null, e.getMessage());
         }
         tableAccept = new JTable(modelAccept) {
 
@@ -175,6 +212,25 @@ public class DependenciesForm extends JFrame {
         discardButton.setPreferredSize(new Dimension(200, 25));
         discardButton.setText("Discard");
         buttonsPanel.add(discardButton);
+        discardButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int[] rows = tableAccept.getSelectedRows();
+                ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
+                for (int i = 0; i < rows.length; i++) {
+                    Integer temp = Integer.valueOf((String) modelAccept.getValueAt(rows[i] - i, 0));
+                    selectedRowsIds.add( temp );
+                }
+//                try {
+//                    DBMSManager.DALFactory(Settings.getRdbms()).discard(selectedRowsIds);
+//                } catch (SQLException ex) {
+//                    JOptionPane.showMessageDialog(null, ex.getMessage());
+//                }
+                refresh(0, model, table);
+                refresh(2, modelReject, tableAccept);
+            }
+        });
         acceptDependenciesPanel.add(buttonsPanel, BorderLayout.SOUTH);
         return acceptDependenciesPanel;
     }
@@ -184,11 +240,10 @@ public class DependenciesForm extends JFrame {
         rejectDependenciesPanel.setLayout(new BorderLayout());
         modelReject = new DefaultTableModel();
         modelReject.setColumnIdentifiers(new String[]{"Id", "Condition", "Determinant", "Dependent"});
-//        readCorrelations(2, modelReject);
         try {
             new taskhandler.ReadDependencies(2, modelReject);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            JOptionPane.showMessageDialog(null, e.getMessage());
         }
         tableReject = new JTable(modelReject) {
 
@@ -214,60 +269,125 @@ public class DependenciesForm extends JFrame {
         JButton forgetButton = new JButton();
         forgetButton.setText("Forget");
         buttonsPanel.add(forgetButton);
+        forgetButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int[] rows = tableReject.getSelectedRows();
+                ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
+                for (int i = 0; i < rows.length; i++) {
+                    Integer temp = Integer.valueOf((String) modelReject.getValueAt(rows[i] - i, 0));
+                    selectedRowsIds.add( temp );
+                }
+                try {
+                    DBMSManager.DALFactory(Settings.getRdbms()).forget(selectedRowsIds);
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(null, ex.getMessage());
+                }
+                refresh(0, model, table);
+                refresh(2, modelReject, tableReject);
+            }
+        });
 
         JButton cleanupButton = new JButton();
         cleanupButton.setText("Cleanup");
         buttonsPanel.add(cleanupButton);
+        cleanupButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int[] rows = tableReject.getSelectedRows();
+                ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
+                for (int i = 0; i < rows.length; i++) {
+                    Integer temp = Integer.valueOf((String) modelReject.getValueAt(rows[i] - i, 0));
+                    selectedRowsIds.add( temp );
+                }
+//                try {
+//                    DBMSManager.DALFactory(Settings.getRdbms()).cleanUp(selectedRowsIds);
+//                } catch (SQLException ex) {
+//                    JOptionPane.showMessageDialog(null, ex.getMessage());
+//                }
+                refresh(0, model, table);
+                refresh(2, modelReject, tableReject);
+            }
+        });
 
 
         rejectDependenciesPanel.add(buttonsPanel, BorderLayout.SOUTH);
         return rejectDependenciesPanel;
     }
 
-    public static void readCorrelations(int status, DefaultTableModel model) {
-        Statement stmt_fd = null;
-        ResultSet fd = DBMSManager.DALFactory(Settings.getRdbms()).readDependencies(status);
-        if (fd == null) {
-            //TODO: show error message
-            return;
-        }
-        try {
-            while (fd.next()) {
+    public static void readDependencies(int status, DefaultTableModel model) throws SQLException {
+        if (status != 0) {
+            Statement stmt_fd = null;
+            ResultSet fd = DBMSManager.DALFactory(Settings.getRdbms()).readDependencies(status);
+            if (fd == null) {
+                //TODO: show error message
+                JOptionPane.showMessageDialog(null, "TODO: show error message at readDependencies");
+                return;
+            }
+            try {
+                while (fd.next()) {
+                    String determinant = "";
+                    String dependent = "";
+                    String[] temp = fd.getString(3).split(",");
+                    for (int index = 1; index < temp.length; ++index) {
+                        String[] temp2 = temp[index].split("!");
+                        if (temp2[2].equals("1")) {
+                            determinant += temp2[0] + ",";
+                        } else if (temp2[2].equals("0")) {
+                            dependent += temp2[0] + ",";
+                        }
+                    }
+                    if (determinant.length() > 0) {
+                        determinant = determinant.substring(0, determinant.length() - 1);
+                    }
+                    dependent = dependent.substring(0, dependent.length() - 1);
+                    model.addRow(new String[]{fd.getString(1), fd.getString(2), determinant, dependent});
+
+                    determinant = "";
+                    dependent = "";
+
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, e.getMessage());
+            }
+        } else if (status == 0) {
+            AbstractList<FDScenario> dependencies = DBMSManager.DALFactory(Settings.getRdbms()).getListOfMuSql();
+            for (int i = 0; i < dependencies.size(); ++i) {
                 String determinant = "";
                 String dependent = "";
-                String[] temp = fd.getString(3).split(",");
-                for (int index = 1; index < temp.length; ++index) {
-                    String[] temp2 = temp[index].split("!");
-                    if (temp2[2].equals("1")) {
-                        determinant += temp2[0] + ",";
-                    } else if (temp2[2].equals("0")) {
-                        dependent += temp2[0] + ",";
-                    }
+                for (int j = 0; j < dependencies.get(i).determinantColumns.size() ;++j) {
+                    determinant+=dependencies.get(i).determinantColumns.get(j) + ",";
+                }
+                for (int j = 0; j < dependencies.get(i).dependentColumns.size() ;++j) {
+                    dependent+=dependencies.get(i).dependentColumns.get(j) + ",";
                 }
                 if (determinant.length() > 0) {
                     determinant = determinant.substring(0, determinant.length() - 1);
                 }
-                dependent = dependent.substring(0, dependent.length() - 1);
-                model.addRow(new String[]{fd.getString(1), fd.getString(2), determinant, dependent});
+                if (dependent.length() > 0) {
+                    dependent = dependent.substring(0, dependent.length() - 1);
+                }
+                
+                model.addRow(new String[]{dependencies.get(i).id+"", dependencies.get(i).condition, determinant, dependent});
 
                 determinant = "";
                 dependent = "";
-
             }
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+
+
+
         }
-        //}
     }
 
     public static void refresh(int status, DefaultTableModel model, JTable table) {
         DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
         tableModel.setRowCount(0);
-//        readCorrelations(status, model);
         try {
             new taskhandler.ReadDependencies(status, model);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            JOptionPane.showMessageDialog(null, e.getMessage());
         }
     }
 }
