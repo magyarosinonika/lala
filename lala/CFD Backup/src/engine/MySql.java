@@ -993,7 +993,7 @@ public void accept(AbstractList<Integer> idToAccept) throws SQLException {
         return listOfMu;
     }
     
-     public void forget(AbstractList<Integer> idsToForget) throws SQLException {
+     public void discard(AbstractList<Integer> idsToForget) throws SQLException {
 
         Statement s = getConnection().createStatement();
         String ids = "";

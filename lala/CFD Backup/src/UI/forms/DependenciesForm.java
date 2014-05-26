@@ -222,13 +222,13 @@ public class DependenciesForm extends JFrame {
                     Integer temp = Integer.valueOf((String) modelAccept.getValueAt(rows[i] - i, 0));
                     selectedRowsIds.add( temp );
                 }
-//                try {
-//                    DBMSManager.DALFactory(Settings.getRdbms()).discard(selectedRowsIds);
-//                } catch (SQLException ex) {
-//                    JOptionPane.showMessageDialog(null, ex.getMessage());
-//                }
+                try {
+                    DBMSManager.DALFactory(Settings.getRdbms()).discard(selectedRowsIds);
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(null, ex.getMessage());
+                }
                 refresh(0, model, table);
-                refresh(2, modelReject, tableAccept);
+                refresh(1, modelAccept, tableAccept);
             }
         });
         acceptDependenciesPanel.add(buttonsPanel, BorderLayout.SOUTH);
@@ -279,11 +279,11 @@ public class DependenciesForm extends JFrame {
                     Integer temp = Integer.valueOf((String) modelReject.getValueAt(rows[i] - i, 0));
                     selectedRowsIds.add( temp );
                 }
-                try {
-                    DBMSManager.DALFactory(Settings.getRdbms()).forget(selectedRowsIds);
-                } catch (SQLException ex) {
-                    JOptionPane.showMessageDialog(null, ex.getMessage());
-                }
+//                try {
+//                    DBMSManager.DALFactory(Settings.getRdbms()).forget(selectedRowsIds);
+//                } catch (SQLException ex) {
+//                    JOptionPane.showMessageDialog(null, ex.getMessage());
+//                }
                 refresh(0, model, table);
                 refresh(2, modelReject, tableReject);
             }
