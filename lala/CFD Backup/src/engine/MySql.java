@@ -510,7 +510,7 @@ public class MySql implements DAL {
                         for (int column = 0; column < columnNameswithoutConditionColumn.size(); ++column) {
                             AbstractList<String> conditions = getConditions(tableName, columnNameswithoutConditionColumn.get(column));
                             for (int conditionIndex = 0; conditionIndex < conditions.size(); ++conditionIndex) {
-                                FDScenario currentFDscenario = new FDScenario(determinantColumns, dependentColumns, conditions.get(conditionIndex));
+                                FDScenario currentFDscenario = new FDScenario(determinantColumns, dependentColumns, conditions.get(conditionIndex), tableName);
                                 try {
                                     if (isCfd(tableName, determinantColumns, dependentColumns, conditions.get(conditionIndex)) && !ispPresentCFD(currentFDscenario)) {
                                         UI.forms.DependenciesForm.currentLabel.setText(tableName);
@@ -1013,4 +1013,109 @@ public void accept(AbstractList<Integer> idToAccept) throws SQLException {
         }
     } 
      
+     public void cleanUp() throws SQLException {
+        //ellenorizni kondicios osszefuggesekre is
+        ArrayList<Integer> idsWith02Status = new ArrayList<Integer>();
+        ArrayList<Integer> idsToDelete = new ArrayList<Integer>();
+        AbstractList<FDScenario> listOfCleanUpCandidate = new ArrayList<FDScenario>();
+        String ids = "(0,2)";
+        String sql = "select id from dependency where status in" + ids;
+        Statement s = getConnection().createStatement();
+        ResultSet result = null;
+        result = s.executeQuery(sql);
+        while (result.next()) {
+            idsWith02Status.add(result.getInt(1));
+        }
+
+        ResultSet condi = null;
+        ResultSet determinant = null;
+        ResultSet dependent = null;
+        listOfCleanUpCandidate.clear();
+        
+        for (int i = 0; i < idsWith02Status.size(); ++i) {
+            ArrayList<String> determinantArray = new ArrayList<String>();
+            ArrayList<String> dependentArray = new ArrayList<String>();
+            String condition = null;
+            
+            String sql1 = "select condi from dependency where id = " + idsWith02Status.get(i);
+            condi = s.executeQuery(sql1);
+
+            while (condi.next()) {
+                try{
+                String[] condiSplit = condi.getString(1).split("\\.");
+                String condiWithoutColumnName = condiSplit[1]; 
+                //condition = condi.getString(1);
+                condition = condiWithoutColumnName;
+                }
+                catch(Exception e){
+                    
+                }
+            }
+
+            String sql2 = "select columnName from dependencyColumn where dependencyId = " + idsWith02Status.get(i)
+                    + " and isDeterminantColumn = 1";
+            determinant = s.executeQuery(sql2);
+            
+            String  tablanev = null;
+            while (determinant.next()) {
+                String string = determinant.getString(1);
+                String[] determinantColumnSplit = string.split("\\.");
+                String determinantColumn = determinantColumnSplit[1]; //tablanev.oszlopnev----->oszlopnev
+                tablanev = determinantColumnSplit[0];
+                determinantArray.add(determinantColumn);  
+            }
+
+            String sql3 = "select columnName from dependencyColumn where dependencyId = " + idsWith02Status.get(i)
+                    + " and isDeterminantColumn = 0";
+            dependent = s.executeQuery(sql3);
+            while (dependent.next()) {
+                
+                String string = dependent.getString(1);
+                String[] dependentColumnSplit = string.split("\\.");
+                String dependentColumn = dependentColumnSplit[1]; //tablanev.oszlopnev----->oszlopnev
+                tablanev = dependentColumnSplit[0];
+                dependentArray.add(dependentColumn); 
+                //dependentArray.add(dependent.getString(1));
+                
+            }
+
+            listOfCleanUpCandidate.add(new FDScenario(tablanev, idsWith02Status.get(i), determinantArray, dependentArray, condition));
+        }
+
+        for (int i = 0; i < listOfCleanUpCandidate.size(); ++i) {
+            //String[] splits = listOfCleanUpCandidate.get(i).determinantColumns.get(0).split("\\.");
+            //tableNamee = splits[0];
+            //System.out.println(listOfCleanUpCandidate.get(i).id + "," +listOfCleanUpCandidate.get(i).condition +","+ listOfCleanUpCandidate.get(i).determinantColumns + "," + listOfCleanUpCandidate.get(i).dependentColumns);
+            
+            if (listOfCleanUpCandidate.get(i).condition != null && listOfCleanUpCandidate.get(i).determinantColumns.size() != 0) { //cfd
+                //check cfd
+                String tableName[] = listOfCleanUpCandidate.get(i).tableName.split("\\.");
+                String currtableName = tableName[0];
+                if (!isCfd(currtableName, listOfCleanUpCandidate.get(i).determinantColumns, listOfCleanUpCandidate.get(i).dependentColumns, listOfCleanUpCandidate.get(i).condition)) {
+                    idsToDelete.add(listOfCleanUpCandidate.get(i).id);
+                }
+            }
+            if (listOfCleanUpCandidate.get(i).condition != null && listOfCleanUpCandidate.get(i).determinantColumns.size() == 0) {
+                //check ar
+                //String tableName[] = listOfCleanUpCandidate.get(i).tableName.split("\\.");
+                //String currtableName = tableName[0];
+                String currtableName = listOfCleanUpCandidate.get(i).tableName;
+                if (!isAr(currtableName,  listOfCleanUpCandidate.get(i).condition, listOfCleanUpCandidate.get(i).dependentColumns)) {
+                    idsToDelete.add(listOfCleanUpCandidate.get(i).id);
+                }
+            }
+            if (listOfCleanUpCandidate.get(i).condition == null) {
+                //check fd
+                String tableName[] = listOfCleanUpCandidate.get(i).tableName.split("\\.");
+                String currtableName = tableName[0];
+                if (!isFd(currtableName, listOfCleanUpCandidate.get(i).determinantColumns, listOfCleanUpCandidate.get(i).dependentColumns)) {
+                    idsToDelete.add(listOfCleanUpCandidate.get(i).id);
+                }
+            }
+        }
+        
+        forget(idsToDelete);
+
+    }
+
 }

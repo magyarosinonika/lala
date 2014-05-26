@@ -10,6 +10,6 @@ package taskhandler;
  */
 public class LearnFDs extends BaseThread{
     public void run() {
-        engine.Operator.learnFDs();
+        //engine.Operator.learnFDs();
     }
 }

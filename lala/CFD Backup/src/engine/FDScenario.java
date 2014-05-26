@@ -43,7 +43,7 @@ public class FDScenario {
             values.add("");
         }
     }
-    //ar
+    
 
     public FDScenario(AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition, AbstractList<String> values) {
         this.determinantColumns = determinantColumns;
@@ -59,5 +59,15 @@ public class FDScenario {
         this.condition = condition;
         
     }
+    
+    public FDScenario(String tableName, int id, AbstractList<String> determinantColumns, AbstractList<String> dependentColumns, String condition) {
+        this.id = id;
+        this.determinantColumns = determinantColumns;
+        this.dependentColumns = dependentColumns;
+        this.condition = condition;
+        this.tableName = tableName;
+        
+    }
+
     
 }

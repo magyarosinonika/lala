@@ -10,6 +10,6 @@ package taskhandler;
  */
 public class LearnARs extends BaseThread{
     public void run() {
-        engine.Operator.learnARs();
+       // engine.Operator.learnARs();
     }
 }
