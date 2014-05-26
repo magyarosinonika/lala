@@ -120,7 +120,7 @@ public class DependenciesForm extends JFrame {
                 int[] rows = table.getSelectedRows();
                 ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
                 for (int i = 0; i < rows.length; i++) {
-                    Integer temp = Integer.valueOf((String) model.getValueAt(rows[i] - i, 0));
+                    Integer temp = Integer.valueOf((String) model.getValueAt(rows[i], 0));
                     selectedRowsIds.add( temp );
                 }
                 try {
@@ -132,6 +132,7 @@ public class DependenciesForm extends JFrame {
                 
                 refresh(0, model, table);
                 refresh(1, modelAccept, tableAccept);
+                refresh(2, modelReject, tableReject);
             }
         });
         JButton rejectButton = new JButton("Reject");
@@ -144,7 +145,7 @@ public class DependenciesForm extends JFrame {
                 ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
                 for (int i = 0; i < rows.length; i++) {
                     
-                    Integer temp = Integer.valueOf((String) model.getValueAt(rows[i] - i, 0));
+                    Integer temp = Integer.valueOf((String) model.getValueAt(rows[i], 0));
                     selectedRowsIds.add( temp );
                 }
                 try {
@@ -219,11 +220,11 @@ public class DependenciesForm extends JFrame {
                 int[] rows = tableAccept.getSelectedRows();
                 ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
                 for (int i = 0; i < rows.length; i++) {
-                    Integer temp = Integer.valueOf((String) modelAccept.getValueAt(rows[i] - i, 0));
+                    Integer temp = Integer.valueOf((String) modelAccept.getValueAt(rows[i], 0));
                     selectedRowsIds.add( temp );
                 }
                 try {
-                    DBMSManager.DALFactory(Settings.getRdbms()).discard(selectedRowsIds);
+                    DBMSManager.DALFactory(Settings.getRdbms()).forget(selectedRowsIds);
                 } catch (SQLException ex) {
                     JOptionPane.showMessageDialog(null, ex.getMessage());
                 }
@@ -276,14 +277,14 @@ public class DependenciesForm extends JFrame {
                 int[] rows = tableReject.getSelectedRows();
                 ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
                 for (int i = 0; i < rows.length; i++) {
-                    Integer temp = Integer.valueOf((String) modelReject.getValueAt(rows[i] - i, 0));
+                    Integer temp = Integer.valueOf((String) modelReject.getValueAt(rows[i], 0));
                     selectedRowsIds.add( temp );
                 }
-//                try {
-//                    DBMSManager.DALFactory(Settings.getRdbms()).forget(selectedRowsIds);
-//                } catch (SQLException ex) {
-//                    JOptionPane.showMessageDialog(null, ex.getMessage());
-//                }
+                try {
+                    DBMSManager.DALFactory(Settings.getRdbms()).forget(selectedRowsIds);
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(null, ex.getMessage());
+                }
                 refresh(0, model, table);
                 refresh(2, modelReject, tableReject);
             }
@@ -296,17 +297,11 @@ public class DependenciesForm extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                int[] rows = tableReject.getSelectedRows();
-                ArrayList<Integer> selectedRowsIds = new ArrayList<Integer>();
-                for (int i = 0; i < rows.length; i++) {
-                    Integer temp = Integer.valueOf((String) modelReject.getValueAt(rows[i] - i, 0));
-                    selectedRowsIds.add( temp );
+                try {
+                    DBMSManager.DALFactory(Settings.getRdbms()).cleanUp();
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(null, ex.getMessage());
                 }
-//                try {
-//                    DBMSManager.DALFactory(Settings.getRdbms()).cleanUp(selectedRowsIds);
-//                } catch (SQLException ex) {
-//                    JOptionPane.showMessageDialog(null, ex.getMessage());
-//                }
                 refresh(0, model, table);
                 refresh(2, modelReject, tableReject);
             }

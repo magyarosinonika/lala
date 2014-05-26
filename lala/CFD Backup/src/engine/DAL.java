@@ -37,8 +37,9 @@ public interface DAL {//javaDocs utana olvasni
     //void combinations(final AbstractList columns, int[] helpNumbers, final int k);
     public ResultSet readDependencies(int status);
     public void accept(AbstractList<Integer> idToAccept) throws SQLException;
-    public void discard(AbstractList<Integer> idsToForget) throws SQLException;
     //public void getListOfMuSql() throws SQLException;
     public void reject(AbstractList<Integer> idToReject) throws SQLException;
     public AbstractList<FDScenario> getListOfMuSql() throws SQLException;
+    public void forget(AbstractList<Integer> idsToForget) throws SQLException;
+    public void cleanUp() throws SQLException;
 }

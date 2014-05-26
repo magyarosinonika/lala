@@ -911,7 +911,7 @@ public void accept(AbstractList<Integer> idToAccept) throws SQLException {
         String sql = "select result.id "
                     + "from dependency result "
                     + "where  result.status = '0'  and result.id not in"
-                        + "(select d2.id "
+                        + "(select d1.id "
                         + "from dependency d1 ,  dependency d2 "
                         + "where d1.status = '0' "
                         + "and d2.status = '0' "
@@ -992,8 +992,9 @@ public void accept(AbstractList<Integer> idToAccept) throws SQLException {
         }
         return listOfMu;
     }
-    
-     public void discard(AbstractList<Integer> idsToForget) throws SQLException {
+     
+     
+     public void forget(AbstractList<Integer> idsToForget) throws SQLException {
 
         Statement s = getConnection().createStatement();
         String ids = "";
@@ -1011,7 +1012,7 @@ public void accept(AbstractList<Integer> idToAccept) throws SQLException {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    } 
+    }
      
      public void cleanUp() throws SQLException {
         //ellenorizni kondicios osszefuggesekre is
