@@ -86,27 +86,28 @@ public class MainForm extends JFrame {
 
                     if (action == 0) {
                         System.out.println("Normal");
-                        Date d1 = new Date();
-
-                        for (int i = 0; i < 10000000; ++i) {
-                            for (int j = 0; j < 20000; ++j) {
-                                //
-                            }
-
-                        }
-                        Date d2 = new Date();
-                        long diff = d2.getTime() - d1.getTime();
-
-                        long diffSeconds = diff / 1000 % 60;
-                        long diffMinutes = diff / (60 * 1000) % 60;
-                        long diffHours = diff / (60 * 60 * 1000) % 24;
-                        long diffDays = diff / (24 * 60 * 60 * 1000);
-                        JOptionPane.showMessageDialog(myframe, "Time: " + diffDays + " days ," + diffHours + " hours, " + diffMinutes + " minutes, " + diffSeconds + " seconds." ,"Backup time",JOptionPane.INFORMATION_MESSAGE);
-                        System.out.println();
-                        System.out.print(diffDays + " days, ");
-                        System.out.print(diffHours + " hours, ");
-                        System.out.print(diffMinutes + " minutes, ");
-                        System.out.print(diffSeconds + " seconds.");
+                        DBMSManager.DALFactory(Settings.getRdbms()).normalBackup();
+//                        Date d1 = new Date();
+//
+//                        for (int i = 0; i < 10000000; ++i) {
+//                            for (int j = 0; j < 20000; ++j) {
+//                                //
+//                            }
+//
+//                        }
+//                        Date d2 = new Date();
+//                        long diff = d2.getTime() - d1.getTime();
+//
+//                        long diffSeconds = diff / 1000 % 60;
+//                        long diffMinutes = diff / (60 * 1000) % 60;
+//                        long diffHours = diff / (60 * 60 * 1000) % 24;
+//                        long diffDays = diff / (24 * 60 * 60 * 1000);
+//                        JOptionPane.showMessageDialog(myframe, "Time: " + diffDays + " days ," + diffHours + " hours, " + diffMinutes + " minutes, " + diffSeconds + " seconds." ,"Backup time",JOptionPane.INFORMATION_MESSAGE);
+//                        System.out.println();
+//                        System.out.print(diffDays + " days, ");
+//                        System.out.print(diffHours + " hours, ");
+//                        System.out.print(diffMinutes + " minutes, ");
+//                        System.out.print(diffSeconds + " seconds.");
                     } else if (action == 1) {
                         System.out.println("With dependencies");
                     }

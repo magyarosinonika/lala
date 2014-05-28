@@ -42,4 +42,5 @@ public interface DAL {//javaDocs utana olvasni
     public AbstractList<FDScenario> getListOfMuSql() throws SQLException;
     public void forget(AbstractList<Integer> idsToForget) throws SQLException;
     public void cleanUp() throws SQLException;
+    public void normalBackup() throws SQLException;
 }
