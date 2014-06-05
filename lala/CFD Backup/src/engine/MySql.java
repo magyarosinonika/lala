@@ -1139,19 +1139,11 @@ public class MySql implements DAL {
                 String[] rows = result2.getString(2).split("\n");
                 int j = 0;
                 while (j < rows.length) {
-//                    
-//                }
-
-
-                    //for (int j = 0; j < rows.length; ++j) {
                     if (j != rows.length - 1) {
                         if (rows[j + 1].contains("FOREIGN KEY") || rows[j + 1].contains("foreign key")) {
-                            System.out.println("0");
                             if (rows[j].charAt(rows[j].length() - 1) == ',') {
-                                System.out.println("1");
                                 createTableScript += rows[j].substring(0, rows[j].length() - 1) + "\n";
                                 ++j;
-                                System.out.println("2");
                             } else {
                                 createTableScript += rows[j] + "\n";
                                 ++j;
@@ -1181,10 +1173,6 @@ public class MySql implements DAL {
             }
         }
 
-        System.out.println(createTableScript);
-
-
-
         sql = "select TABLE_NAME,COLUMN_NAME,CONSTRAINT_NAME,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME "
                 + "from information_schema.key_column_usage "
                 + "where TABLE_SCHEMA = '" + Settings.getDbName() + "' "
@@ -1192,36 +1180,32 @@ public class MySql implements DAL {
         result3 = s.executeQuery(sql);
         String foreignKeyScript = "";
         while (result3.next()) {
-            //tables.add(result3.getString(1));
-
             String temp = "ALTER TABLE " + result3.getString(1) + " "
                     + " ADD FOREIGN KEY (" + result3.getString(2) + ")"
                     + "REFERENCES " + result3.getString(4) + " (" + result3.getString(5) + ") ;";
             foreignKeyScript += temp + "\n\n";
 
         }
-
-        System.out.println(foreignKeyScript);
         String insertScript = "";
         int rowNumber = 0;
         int colNumber = 0;
         int tempLimit1 = 0;
-        int tempLimit2 = 100;
+        int tempLimit2 = 500;
         int limit1 = 0;
         int limit2 = 0;
         for (int i = 0; i < tables.size(); ++i) {
             rowNumber = 0;
             colNumber = 0;
             tempLimit1 = 0;
-            tempLimit2 = 100;
+            tempLimit2 = 500;
             limit1 = 0;
             limit2 = 0;
             sql = "select count(*) from " + tables.get(i);
             resultRowsNumber = s.executeQuery(sql);
             while (resultRowsNumber.next()) {
                 rowNumber = Integer.parseInt(resultRowsNumber.getString(1));
-                limit1 = rowNumber / 100;
-                limit2 = rowNumber % 100;
+                limit1 = rowNumber / 500;
+                limit2 = rowNumber % 500;
             }
 
             sql = "SELECT COUNT(*) "
@@ -1235,12 +1219,9 @@ public class MySql implements DAL {
                 colNumber = Integer.parseInt(resultColumnNumber.getString(1));
             }
 
-            //System.out.println("R:" + rowNumber + "  C" + colNumber);
-            //System.out.println("limit1:" + limit1 + " , limit2:" + limit2);
             if (limit1 != 0) {
                 for (int k = 1; k <= limit1; ++k) {
-                    sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + 100 + ";";
-                    //System.out.println("Sql:" + sql);
+                    sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + 500 + ";";
                     resultInsert = s.executeQuery(sql);
                     insert = "Insert into " + tables.get(i) + " values(";
                     while (resultInsert.next()) {
@@ -1254,15 +1235,13 @@ public class MySql implements DAL {
                     }
                     insert = insert.substring(0, insert.length() - 2);
                     insert += ";\n";
-                    //System.out.println(insert);
                     insertScript += insert;
-                    tempLimit1 += 100;
-                    tempLimit2 += 100;
+                    tempLimit1 += 500;
+                    tempLimit2 += 500;
 
                 }
                 tempLimit2 = tempLimit1 + limit2;
                 sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + limit2 + ";";
-                //System.out.println("Sql:" + sql);
                 resultInsert2 = s.executeQuery(sql);
                 insert = "Insert into " + tables.get(i) + " values(";
                 while (resultInsert2.next()) {
@@ -1277,11 +1256,9 @@ public class MySql implements DAL {
                 insert = insert.substring(0, insert.length() - 2);
                 insert += ";\n";
                 insertScript += insert;
-                //System.out.println(insert);
             } else {
                 tempLimit2 = tempLimit1 + limit2;
                 sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + limit2 + ";";
-                //System.out.println("Sql:" + sql);
                 resultInsert2 = s.executeQuery(sql);
                 insert = "Insert into " + tables.get(i) + " values(";
                 while (resultInsert2.next()) {
@@ -1296,46 +1273,22 @@ public class MySql implements DAL {
                 insert = insert.substring(0, insert.length() - 2);
                 insert += ";\n";
                 insertScript += insert;
-                //System.out.println(insert);
             }
 
         }
-        System.out.println(insertScript);
-        
-        //conditionList.add(column + "='" + conditions.getString(1).replace("'", "''") + "'");
-        
-        
-        
-        //System.out.println(insert);
 
         BufferedWriter out = null;
         try {
-            FileWriter fstream = new FileWriter("normalBackup.sql"); //true tells to append data.
+            FileWriter fstream = new FileWriter("normalBackup.sql");
             out = new BufferedWriter(fstream);
             out.write(createTableScript + insertScript + foreignKeyScript);
             out.close();
         } catch (IOException e) {
-            System.err.println("Error: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
         }
         
 
 
     }
 
-    public String getInsertValue(String table, String column) throws SQLException {
-        String temp = "";
-        String sql = "Show columns from " + table + " where field = '" + column + "';";
-        Statement s;
-        s = getConnection().createStatement();
-        ResultSet result = null;
-        result = s.executeQuery(sql);
-        String type = "";
-        while (result.next()) {
-            type = result.getString(2);
-        }
-
-
-
-        return temp;
-    }
 }

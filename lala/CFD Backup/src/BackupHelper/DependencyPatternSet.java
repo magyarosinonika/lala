@@ -4,6 +4,7 @@
  */
 package BackupHelper;
 
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.HashMap;
@@ -18,8 +19,9 @@ import java.util.Set;
 public class DependencyPatternSet {
     
     private static int currentId = 0;
-    private static ArrayList<DependencyPatternSet> dependencyPatternSetSet;
+    private static AbstractList<DependencyPatternSet> dependencyPatternSetSet;
     private int id;
-    private HashMap<Integer,Integer> keySet;    //<key,value> ahol value 1 = isdeterminant , 0 ha isdependent
+    private Map<String,Boolean> keySet;    //true = isdeterminant , false = isdependent
+    //priavte dependencyPatterns
     
 }
