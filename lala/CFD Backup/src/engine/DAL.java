@@ -43,4 +43,8 @@ public interface DAL {//javaDocs utana olvasni
     public void forget(AbstractList<Integer> idsToForget) throws SQLException;
     public void cleanUp() throws SQLException;
     public void normalBackup() throws SQLException;
+    public String createTableScript(AbstractList<String> tables) throws SQLException;
+    public String createforeignKeyScript() throws SQLException ;
+    public String createInsertScript(AbstractList<String> tables) throws SQLException;
+    public void printToFile(String createTableScript, String insertScript, String foreignKeyScript);
 }

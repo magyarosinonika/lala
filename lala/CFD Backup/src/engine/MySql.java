@@ -1113,24 +1113,27 @@ public class MySql implements DAL {
 
     @Override
     public void normalBackup() throws SQLException {
-        ArrayList<String> tables = new ArrayList<String>();
+        AbstractList<String> tables = new ArrayList<String>();
+        tables = getTableNames();
         String createTableScript = "";
+        String foreignKeyScript = "";
+        String insertScript = "";
 
-        String sql = "SHOW TABLES;";
+        createTableScript = createTableScript(tables);
+        foreignKeyScript = createforeignKeyScript();
+        insertScript = createInsertScript(tables);
+
+        printToFile(createTableScript, insertScript, foreignKeyScript);
+
+    }
+
+    public String createTableScript(AbstractList<String> tables) throws SQLException {
+
+        String createTableScript = "";
+        String sql = "";
         Statement s;
         s = getConnection().createStatement();
-        ResultSet result = null;
         ResultSet result2 = null;
-        ResultSet result3 = null;
-        ResultSet resultRowsNumber = null;
-        ResultSet resultColumnNumber = null;
-        ResultSet resultInsert = null;
-        ResultSet resultInsert2 = null;
-        String insert = "";
-        result = s.executeQuery(sql);
-        while (result.next()) {
-            tables.add(result.getString(1));
-        }
 
         for (int i = 0; i < tables.size(); ++i) {
             sql = "SHOW CREATE TABLE " + tables.get(i) + "; ";
@@ -1172,111 +1175,112 @@ public class MySql implements DAL {
 
             }
         }
+        return createTableScript;
+    }
 
+    public String createforeignKeyScript() throws SQLException {
+        String foreignKeyScript = "";
+        String sql = "";
+        Statement s;
+        s = getConnection().createStatement();
+        ResultSet result3 = null;
         sql = "select TABLE_NAME,COLUMN_NAME,CONSTRAINT_NAME,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME "
                 + "from information_schema.key_column_usage "
                 + "where TABLE_SCHEMA = '" + Settings.getDbName() + "' "
                 + "and referenced_column_name is not NULL;";
         result3 = s.executeQuery(sql);
-        String foreignKeyScript = "";
+        foreignKeyScript = "";
         while (result3.next()) {
+            if(!result3.getString(1).equals("dependency") && !result3.getString(1).equals("dependencycolumn") && !result3.getString(4).equals("dependency") && !result3.getString(4).equals("dependency")){
             String temp = "ALTER TABLE " + result3.getString(1) + " "
                     + " ADD FOREIGN KEY (" + result3.getString(2) + ")"
                     + "REFERENCES " + result3.getString(4) + " (" + result3.getString(5) + ") ;";
             foreignKeyScript += temp + "\n\n";
-
+            }
         }
+        return foreignKeyScript;
+    }
+
+    public String createInsertScript(AbstractList<String> tables) throws SQLException {
+
+        Statement s;
+        s = getConnection().createStatement();
+        ResultSet resultInsert = null;
         String insertScript = "";
-        int rowNumber = 0;
-        int colNumber = 0;
+        String insert = "";
         int tempLimit1 = 0;
         int tempLimit2 = 500;
         int limit1 = 0;
         int limit2 = 0;
+
         for (int i = 0; i < tables.size(); ++i) {
-            rowNumber = 0;
-            colNumber = 0;
             tempLimit1 = 0;
-            tempLimit2 = 500;
+            //tempLimit2 = 500;
             limit1 = 0;
             limit2 = 0;
-            sql = "select count(*) from " + tables.get(i);
-            resultRowsNumber = s.executeQuery(sql);
-            while (resultRowsNumber.next()) {
-                rowNumber = Integer.parseInt(resultRowsNumber.getString(1));
-                limit1 = rowNumber / 500;
-                limit2 = rowNumber % 500;
+
+
+            AbstractList<String> columnsFromTable = new ArrayList<String>();
+            //columnsFromTable = getColumnsOfTable(tables.get(i));//azert nem hasznalom a mar megirt fuggvenyt mert az a prymari key es oszlopot kihagyja
+            try {
+                Statement statementColumns = null;
+                ResultSet columns = null;
+                statementColumns = getConnection().createStatement();
+                columns = null;
+                columns = statementColumns.executeQuery("show columns from " + tables.get(i) + ";");
+                while (columns.next()) {
+                    columnsFromTable.add(columns.getString(1));
+
+                }
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(null, ex.getMessage(), "Warning", 0);
             }
-
-            sql = "SELECT COUNT(*) "
-                    + "FROM INFORMATION_SCHEMA.COLUMNS "
-                    + "WHERE table_schema = '" + Settings.getDbName() + "'"
-                    + " AND table_name = '" + tables.get(i) + "';";
-
-            resultColumnNumber = s.executeQuery(sql);
-
-            while (resultColumnNumber.next()) {
-                colNumber = Integer.parseInt(resultColumnNumber.getString(1));
+            AbstractList<String> tempArray = new ArrayList<String>();
+            for(int x= 0;x<columnsFromTable.size();++x){
+               //tegyem aposztrofok koze az oszlopneveket
+                String temp = "`" + columnsFromTable.get(x) + "`";
+                tempArray.add(temp);
             }
+            String patternString = tempArray.toString().replaceAll("[\\s\\[\\]]", ""); //columnsNames separated with ","
 
-            if (limit1 != 0) {
-                for (int k = 1; k <= limit1; ++k) {
-                    sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + 500 + ";";
-                    resultInsert = s.executeQuery(sql);
-                    insert = "Insert into " + tables.get(i) + " values(";
-                    while (resultInsert.next()) {
-                        for (int p = 1; p <= colNumber; ++p) {
-                            if (p == colNumber) {
-                                insert += '"' + resultInsert.getString(p) + '"'+ "),(";
-                            } else {
-                                insert += '"' + resultInsert.getString(p) + '"'+ ",";
+            if (columnsFromTable.size() != 0) {
+                boolean cont = true;
+                while (cont) {
+                    String sql = "Select " + patternString + " from " + tables.get(i) + " limit " + tempLimit1 + " , " + 500 + ";";
+                    try {
+                        resultInsert = s.executeQuery(sql);
+                        if (resultInsert.next()) {
+                            resultInsert.previous();
+                            insert = "Insert into " + tables.get(i) + " values(";
+                            while (resultInsert.next()) {
+                                for (int p = 1; p <= columnsFromTable.size(); ++p) {
+                                    if (p == columnsFromTable.size()) {
+                                        insert += '"' + resultInsert.getString(p) + '"' + "),(";
+                                    } else {
+                                        insert += '"' + resultInsert.getString(p) + '"' + ",";
+                                    }
+                                }
                             }
+                            insert = insert.substring(0, insert.length() - 2);
+                            insert += ";\n";
+                            insertScript += insert;
+                            tempLimit1 += 500;
+                        } else {
+                            cont = false;
                         }
+
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(null, ex.getMessage());
                     }
-                    insert = insert.substring(0, insert.length() - 2);
-                    insert += ";\n";
-                    insertScript += insert;
-                    tempLimit1 += 500;
-                    tempLimit2 += 500;
 
                 }
-                tempLimit2 = tempLimit1 + limit2;
-                sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + limit2 + ";";
-                resultInsert2 = s.executeQuery(sql);
-                insert = "Insert into " + tables.get(i) + " values(";
-                while (resultInsert2.next()) {
-                    for (int p = 1; p <= colNumber; ++p) {
-                        if (p == colNumber) {
-                            insert += '"' + resultInsert2.getString(p) + '"'+ "),(";
-                        } else {
-                            insert += '"' + resultInsert2.getString(p) + '"'+ ",";
-                        }
-                    }
-                }
-                insert = insert.substring(0, insert.length() - 2);
-                insert += ";\n";
-                insertScript += insert;
-            } else {
-                tempLimit2 = tempLimit1 + limit2;
-                sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + limit2 + ";";
-                resultInsert2 = s.executeQuery(sql);
-                insert = "Insert into " + tables.get(i) + " values(";
-                while (resultInsert2.next()) {
-                    for (int p = 1; p <= colNumber; ++p) {
-                        if (p == colNumber) {
-                            insert += '"' + resultInsert2.getString(p) + '"'+" ),(";
-                        } else {
-                            insert += '"' + resultInsert2.getString(p) + '"'+ ",";
-                        }
-                    }
-                }
-                insert = insert.substring(0, insert.length() - 2);
-                insert += ";\n";
-                insertScript += insert;
             }
 
         }
+        return insertScript;
+    }
 
+    public void printToFile(String createTableScript, String insertScript, String foreignKeyScript) {
         BufferedWriter out = null;
         try {
             FileWriter fstream = new FileWriter("normalBackup.sql");
@@ -1286,9 +1290,184 @@ public class MySql implements DAL {
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
         }
-        
-
-
     }
-
+//    @Override
+//    public void normalBackup() throws SQLException {
+//        ArrayList<String> tables = new ArrayList<String>();
+//        String createTableScript = "";
+//
+//        String sql = "SHOW TABLES;";
+//        Statement s;
+//        s = getConnection().createStatement();
+//        ResultSet result = null;
+//        ResultSet result2 = null;
+//        ResultSet result3 = null;
+//        ResultSet resultRowsNumber = null;
+//        ResultSet resultColumnNumber = null;
+//        ResultSet resultInsert = null;
+//        ResultSet resultInsert2 = null;
+//        String insert = "";
+//        result = s.executeQuery(sql);
+//        while (result.next()) {
+//            tables.add(result.getString(1));
+//        }
+//
+//        for (int i = 0; i < tables.size(); ++i) {
+//            sql = "SHOW CREATE TABLE " + tables.get(i) + "; ";
+//            result2 = s.executeQuery(sql);
+//            while (result2.next()) {
+//                String[] rows = result2.getString(2).split("\n");
+//                int j = 0;
+//                while (j < rows.length) {
+//                    if (j != rows.length - 1) {
+//                        if (rows[j + 1].contains("FOREIGN KEY") || rows[j + 1].contains("foreign key")) {
+//                            if (rows[j].charAt(rows[j].length() - 1) == ',') {
+//                                createTableScript += rows[j].substring(0, rows[j].length() - 1) + "\n";
+//                                ++j;
+//                            } else {
+//                                createTableScript += rows[j] + "\n";
+//                                ++j;
+//                            }
+//
+//                            ++j;
+//                        } else {
+//                            createTableScript += rows[j] + "\n";
+//                            ++j;
+//                        }
+//                    } else {
+//                        if (!(rows[j].contains("FOREIGN KEY"))) {
+//                            createTableScript += rows[j] + "\n";
+//                            ++j;
+//                        } else {
+//                            if (createTableScript.charAt(createTableScript.length()) == ',') {
+//                                createTableScript = createTableScript.substring(0, createTableScript.length() - 1);
+//                            }
+//                            createTableScript += ");" + "\n";
+//                            ++j;
+//                        }
+//                    }
+//
+//                }
+//                createTableScript += ";\n\n";
+//
+//            }
+//        }
+//
+//        sql = "select TABLE_NAME,COLUMN_NAME,CONSTRAINT_NAME,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME "
+//                + "from information_schema.key_column_usage "
+//                + "where TABLE_SCHEMA = '" + Settings.getDbName() + "' "
+//                + "and referenced_column_name is not NULL;";
+//        result3 = s.executeQuery(sql);
+//        String foreignKeyScript = "";
+//        while (result3.next()) {
+//            String temp = "ALTER TABLE " + result3.getString(1) + " "
+//                    + " ADD FOREIGN KEY (" + result3.getString(2) + ")"
+//                    + "REFERENCES " + result3.getString(4) + " (" + result3.getString(5) + ") ;";
+//            foreignKeyScript += temp + "\n\n";
+//
+//        }
+//        String insertScript = "";
+//        int rowNumber = 0;
+//        int colNumber = 0;
+//        int tempLimit1 = 0;
+//        int tempLimit2 = 500;
+//        int limit1 = 0;
+//        int limit2 = 0;
+//        for (int i = 0; i < tables.size(); ++i) {
+//            rowNumber = 0;
+//            colNumber = 0;
+//            tempLimit1 = 0;
+//            tempLimit2 = 500;
+//            limit1 = 0;
+//            limit2 = 0;
+//            sql = "select count(*) from " + tables.get(i);
+//            resultRowsNumber = s.executeQuery(sql);
+//            while (resultRowsNumber.next()) {
+//                rowNumber = Integer.parseInt(resultRowsNumber.getString(1));
+//                limit1 = rowNumber / 500;
+//                limit2 = rowNumber % 500;
+//            }
+//
+//            sql = "SELECT COUNT(*) "
+//                    + "FROM INFORMATION_SCHEMA.COLUMNS "
+//                    + "WHERE table_schema = '" + Settings.getDbName() + "'"
+//                    + " AND table_name = '" + tables.get(i) + "';";
+//
+//            resultColumnNumber = s.executeQuery(sql);
+//
+//            while (resultColumnNumber.next()) {
+//                colNumber = Integer.parseInt(resultColumnNumber.getString(1));
+//            }
+//
+//            if (limit1 != 0) {
+//                for (int k = 1; k <= limit1; ++k) {
+//                    sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + 500 + ";";
+//                    resultInsert = s.executeQuery(sql);
+//                    insert = "Insert into " + tables.get(i) + " values(";
+//                    while (resultInsert.next()) {
+//                        for (int p = 1; p <= colNumber; ++p) {
+//                            if (p == colNumber) {
+//                                insert += '"' + resultInsert.getString(p) + '"'+ "),(";
+//                            } else {
+//                                insert += '"' + resultInsert.getString(p) + '"'+ ",";
+//                            }
+//                        }
+//                    }
+//                    insert = insert.substring(0, insert.length() - 2);
+//                    insert += ";\n";
+//                    insertScript += insert;
+//                    tempLimit1 += 500;
+//                    tempLimit2 += 500;
+//
+//                }
+//                tempLimit2 = tempLimit1 + limit2;
+//                sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + limit2 + ";";
+//                resultInsert2 = s.executeQuery(sql);
+//                insert = "Insert into " + tables.get(i) + " values(";
+//                while (resultInsert2.next()) {
+//                    for (int p = 1; p <= colNumber; ++p) {
+//                        if (p == colNumber) {
+//                            insert += '"' + resultInsert2.getString(p) + '"'+ "),(";
+//                        } else {
+//                            insert += '"' + resultInsert2.getString(p) + '"'+ ",";
+//                        }
+//                    }
+//                }
+//                insert = insert.substring(0, insert.length() - 2);
+//                insert += ";\n";
+//                insertScript += insert;
+//            } else {
+//                tempLimit2 = tempLimit1 + limit2;
+//                sql = "Select * from " + tables.get(i) + " limit " + tempLimit1 + " , " + limit2 + ";";
+//                resultInsert2 = s.executeQuery(sql);
+//                insert = "Insert into " + tables.get(i) + " values(";
+//                while (resultInsert2.next()) {
+//                    for (int p = 1; p <= colNumber; ++p) {
+//                        if (p == colNumber) {
+//                            insert += '"' + resultInsert2.getString(p) + '"'+" ),(";
+//                        } else {
+//                            insert += '"' + resultInsert2.getString(p) + '"'+ ",";
+//                        }
+//                    }
+//                }
+//                insert = insert.substring(0, insert.length() - 2);
+//                insert += ";\n";
+//                insertScript += insert;
+//            }
+//
+//        }
+//
+//        BufferedWriter out = null;
+//        try {
+//            FileWriter fstream = new FileWriter("normalBackup.sql");
+//            out = new BufferedWriter(fstream);
+//            out.write(createTableScript + insertScript + foreignKeyScript);
+//            out.close();
+//        } catch (IOException e) {
+//            JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
+//        }
+//        
+//
+//
+//    }
 }
